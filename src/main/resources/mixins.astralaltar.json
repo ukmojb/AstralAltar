@@ -1,0 +1,15 @@
+{
+  "package": "com.wdcftgg.astralaltar.mixin",
+  "refmap": "mixins.astralaltar.refmap.json",
+  "mixins": [
+    "MixinTraitRecipe",
+    "block.MixinBlockAttunementRelay"
+  ],
+  "server": [
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

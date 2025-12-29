@@ -1,0 +1,3 @@
+com.wdcftgg.astralaltar.crafting.recipe.GodRecipe.matches
+
+重写配方匹配

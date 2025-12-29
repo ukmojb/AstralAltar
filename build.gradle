@@ -67,13 +67,13 @@ minecraft {
     // Any properties here will be added to a class at build time, the name can be configured below
     // Example:
     // injectedTags.put('VERSION', project.version)
-    // injectedTags.put('MOD_ID', project.archives_base_name)
+    // injectedTags.put('MOD_ID', project.mod_id)
 }
 
 // Generate a group.archives_base_name.Tags class
 tasks.injectTags.configure {
     // Change Tags class' name here:
-    outputClassName.set("${project.group}.${project.archives_base_name}.Tags")
+    outputClassName.set("${project.group}.${project.mod_id}.Tags")
 }
 
 repositories {
@@ -104,11 +104,13 @@ dependencies {
     }
 
     // Example of deobfuscating a dependency
-    // implementation rfg.deobf('curse.maven:had-enough-items-557549:4543375')
+    implementation rfg.deobf('curse.maven:AstralSorcery-241721:3044416')
+    implementation rfg.deobf('curse.maven:Bubbles-995393:6355119')
+    implementation 'mezz:jei:4.28.0'
 
     if (project.use_mixins.toBoolean()) {
         // Change your mixin refmap name here:
-        String mixin = modUtils.enableMixins('org.spongepowered:mixin:0.8.3', "mixins.${project.archives_base_name}.refmap.json")
+        String mixin = modUtils.enableMixins('org.spongepowered:mixin:0.8.3', "mixins.${project.mod_id}.refmap.json")
         api (mixin) {
             transitive = false
         }
@@ -162,7 +164,7 @@ jar {
             }
         }
         if (project.use_access_transformer.toBoolean()) {
-            attribute_map['FMLAT'] = project.archives_base_name + '_at.cfg'
+            attribute_map['FMLAT'] = project.mod_id + '_at.cfg'
         }
         attributes(attribute_map)
     }
