@@ -21,7 +21,6 @@ public class AddedRegistryRecipes {
         initGodRecipes();
     }
     public static void initGodRecipes() {
-        System.out.println("ItemCraftingComponent.MetaType.RESO_GEM--" + ItemCraftingComponent.MetaType.RESO_GEM.getUnlocalizedName());
         test = registerGodRecipe(newShapedRecipe("internal/altar/bore_core111", Items.APPLE.getDefaultInstance())
                 .addPart(Items.APPLE.getDefaultInstance(),
                         ShapedRecipeSlot.UPPER_LEFT,
@@ -29,31 +28,31 @@ public class AddedRegistryRecipes {
                         ShapedRecipeSlot.UPPER_RIGHT,
                         ShapedRecipeSlot.RIGHT)
                 .addPart(ItemCraftingComponent.MetaType.RESO_GEM.asStack(),
-                        ShapedRecipeSlot.CENTER)
-//                        ShapedRecipeSlot.LOWER_CENTER)
-//                .addPart(BlockMarble.MarbleBlockType.RUNED.asStack(),
-//                        ShapedRecipeSlot.LOWER_LEFT,
-//                        ShapedRecipeSlot.LOWER_RIGHT)
+                        ShapedRecipeSlot.CENTER,
+                        ShapedRecipeSlot.LOWER_CENTER)
+                .addPart(BlockMarble.MarbleBlockType.RUNED.asStack(),
+                        ShapedRecipeSlot.LOWER_LEFT,
+                        ShapedRecipeSlot.LOWER_RIGHT)
                 .unregisteredAccessibleShapedRecipe());
-//        test.setAttItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
-//                GodRecipe.AttunementAltarSlot.UPPER_RIGHT,
-//                GodRecipe.AttunementAltarSlot.UPPER_LEFT);
-//        test.setCstItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
-//                GodRecipe.ConstellationAtlarSlot.UP_LEFT_LEFT,
-//                GodRecipe.ConstellationAtlarSlot.UP_RIGHT_RIGHT);
-//        test.setInnerTraitItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
-//                GodRecipe.TraitRecipeSlot.LEFT_CENTER,
-//                GodRecipe.TraitRecipeSlot.RIGHT_CENTER);
-//        test.setInnerTraitItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
-//                GodRecipe.TraitRecipeSlot.UPPER_CENTER);
-//        test.setCstItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
-//                GodRecipe.ConstellationAtlarSlot.UP_UP_LEFT,
-//                GodRecipe.ConstellationAtlarSlot.UP_UP_RIGHT);
-//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
-//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.RESO_GEM.asStack());
-//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
-//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.RESO_GEM.asStack());
-//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
-//        test.setPassiveStarlightRequirement(6500);
+        test.setAttItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                GodRecipe.AttunementAltarSlot.UPPER_RIGHT,
+                GodRecipe.AttunementAltarSlot.UPPER_LEFT);
+        test.setCstItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                GodRecipe.ConstellationAtlarSlot.UP_LEFT_LEFT,
+                GodRecipe.ConstellationAtlarSlot.UP_RIGHT_RIGHT);
+        test.setInnerTraitItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                GodRecipe.TraitRecipeSlot.LEFT_CENTER,
+                GodRecipe.TraitRecipeSlot.RIGHT_CENTER);
+        test.setInnerTraitItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
+                GodRecipe.TraitRecipeSlot.UPPER_CENTER);
+        test.setCstItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
+                GodRecipe.ConstellationAtlarSlot.UP_UP_LEFT,
+                GodRecipe.ConstellationAtlarSlot.UP_UP_RIGHT);
+        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+        test.addOuterTraitItem(ItemCraftingComponent.MetaType.RESO_GEM.asStack());
+        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+        test.addOuterTraitItem(ItemCraftingComponent.MetaType.RESO_GEM.asStack());
+        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+        test.setPassiveStarlightRequirement(6500);
     }
 }

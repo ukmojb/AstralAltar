@@ -23,7 +23,7 @@ public class CommonProxy{
 
 	public void onPreInit() {
 
-		AddedRegistryRecipes.initAstralRecipes();
+
 	}
 
 	public void onPostInit() {

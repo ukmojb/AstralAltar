@@ -3,11 +3,17 @@ package com.wdcftgg.astralaltar.init;
 
 import com.wdcftgg.astralaltar.blocks.ModBlocks;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
+import com.wdcftgg.astralaltar.crafting.AddedRegistryRecipes;
 import com.wdcftgg.astralaltar.items.ModItems;
 import com.wdcftgg.astralaltar.util.IHasModel;
+import hellfirepvp.astralsorcery.common.base.LightOreTransmutations;
+import hellfirepvp.astralsorcery.common.base.LiquidInteraction;
+import hellfirepvp.astralsorcery.common.base.WellLiquefaction;
+import hellfirepvp.astralsorcery.common.registry.RegistryRecipes;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
+import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
@@ -79,7 +85,10 @@ public class RegistryHandler {
 		//WorldType TYPE_ONE = new WorldTypeOne();
 	}
 
-
+	@SubscribeEvent
+	public static void registerRecipes(RegistryEvent.Register<IRecipe> event) {
+		AddedRegistryRecipes.initAstralRecipes();
+	}
 
 	public static void serverRegistries(FMLServerStartingEvent event)
     {
