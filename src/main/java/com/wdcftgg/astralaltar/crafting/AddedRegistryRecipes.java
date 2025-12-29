@@ -1,8 +1,14 @@
 package com.wdcftgg.astralaltar.crafting;
 
 import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
+import hellfirepvp.astralsorcery.common.block.BlockBlackMarble;
+import hellfirepvp.astralsorcery.common.block.BlockInfusedWood;
+import hellfirepvp.astralsorcery.common.block.BlockMarble;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
+import hellfirepvp.astralsorcery.common.item.ItemCraftingComponent;
+import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
 
 import static com.wdcftgg.astralaltar.crafting.AddedAltarRecipeRegistry.registerGodRecipe;
 import static hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipe.Builder.newShapedRecipe;
@@ -15,14 +21,15 @@ public class AddedRegistryRecipes {
         initGodRecipes();
     }
     public static void initGodRecipes() {
-        test = registerGodRecipe(newShapedRecipe("internal/altar/bore_core111", Items.BOOK.getDefaultInstance())
+        System.out.println("ItemCraftingComponent.MetaType.RESO_GEM--" + ItemCraftingComponent.MetaType.RESO_GEM.getUnlocalizedName());
+        test = registerGodRecipe(newShapedRecipe("internal/altar/bore_core111", Items.APPLE.getDefaultInstance())
                 .addPart(Items.APPLE.getDefaultInstance(),
                         ShapedRecipeSlot.UPPER_LEFT,
                         ShapedRecipeSlot.LEFT,
                         ShapedRecipeSlot.UPPER_RIGHT,
                         ShapedRecipeSlot.RIGHT)
-//                .addPart(ItemCraftingComponent.MetaType.RESO_GEM.asStack(),
-//                        ShapedRecipeSlot.CENTER,
+                .addPart(ItemCraftingComponent.MetaType.RESO_GEM.asStack(),
+                        ShapedRecipeSlot.CENTER)
 //                        ShapedRecipeSlot.LOWER_CENTER)
 //                .addPart(BlockMarble.MarbleBlockType.RUNED.asStack(),
 //                        ShapedRecipeSlot.LOWER_LEFT,

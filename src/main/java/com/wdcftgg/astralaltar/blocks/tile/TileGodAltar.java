@@ -23,6 +23,7 @@ import hellfirepvp.astralsorcery.common.crafting.altar.ActiveCraftingTask;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapeMap;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
 import hellfirepvp.astralsorcery.common.entities.EntityFlare;
+import hellfirepvp.astralsorcery.common.item.base.IWandInteract;
 import hellfirepvp.astralsorcery.common.item.base.ItemConstellationFocus;
 import hellfirepvp.astralsorcery.common.item.block.ItemBlockAltar;
 import hellfirepvp.astralsorcery.common.lib.MultiBlockArrays;
@@ -35,6 +36,7 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.registry.Transmis
 import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
 import hellfirepvp.astralsorcery.common.structure.change.ChangeSubscriber;
 import hellfirepvp.astralsorcery.common.structure.match.StructureMatcherPatternArray;
+import hellfirepvp.astralsorcery.common.tile.IMultiblockDependantTile;
 import hellfirepvp.astralsorcery.common.tile.TileAltar;
 import hellfirepvp.astralsorcery.common.tile.base.TileReceiverBaseInventory;
 import hellfirepvp.astralsorcery.common.util.*;
@@ -61,7 +63,7 @@ import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.Random;
 
-public class TileGodAltar extends TileAltar {
+public class TileGodAltar extends TileReceiverBaseInventory implements IWandInteract, IMultiblockDependantTile {
 
     private static final Random rand = new Random();
     private float posDistribution = -1.0F;
@@ -76,7 +78,7 @@ public class TileGodAltar extends TileAltar {
 
 
     public TileGodAltar() {
-        super();
+        super(42);
         this.inventorySize = 42;
         this.structureMatch = null;
         this.multiblockMatches = false;
@@ -112,6 +114,7 @@ public class TileGodAltar extends TileAltar {
         }
     }
 
+    @Override
     public void update() {
         super.update();
         if ((this.ticksExisted & 15) == 0) {
@@ -140,7 +143,6 @@ public class TileGodAltar extends TileAltar {
 
     }
 
-    @Override
     public TileAltar.AltarLevel getAltarLevel() {
         return TileAltar.AltarLevel.TRAIT_CRAFT;
     }
@@ -186,8 +188,9 @@ public class TileGodAltar extends TileAltar {
         this.markForUpdate();
     }
 
+    @Override
     public void onBreak() {
-//        super.onBreak();
+        super.onBreak();
         if (!this.world.isRemote && !this.focusItem.isEmpty()) {
             ItemUtils.dropItemNaturally(this.world, (double)this.pos.getX() + 0.5, (double)this.pos.getY() + 0.5, (double)this.pos.getZ() + 0.5, this.focusItem);
             this.focusItem = ItemStack.EMPTY;
@@ -195,6 +198,7 @@ public class TileGodAltar extends TileAltar {
 
     }
 
+    @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
         AxisAlignedBB box = super.getRenderBoundingBox().expand(0.0, 5.0, 0.0);
@@ -294,7 +298,7 @@ public class TileGodAltar extends TileAltar {
                     ItemStack match = recipe.getOutputForMatching();
                     if (match.getItem() instanceof ItemBlockAltar) {
                         TileAltar.AltarLevel to = TileAltar.AltarLevel.values()[MathHelper.clamp(match.getItemDamage(), 0, TileAltar.AltarLevel.values().length - 1)];
-                        this.tryForceLevelUp(to, true);
+//                        this.tryForceLevelUp(to, true);
                     }
                 }
 
@@ -324,6 +328,7 @@ public class TileGodAltar extends TileAltar {
 
 
 
+    @Override
     public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newSate) {
         return oldState.getBlock() != newSate.getBlock();
     }
@@ -378,11 +383,13 @@ public class TileGodAltar extends TileAltar {
         return this.multiblockMatches;
     }
 
+    @Override
     @Nullable
     public PatternBlockArray getRequiredStructure() {
         return RegistryStructures.patternAltarGod;
     }
 
+    @Override
     @Nonnull
     public BlockPos getLocationPos() {
         return this.getPos();
@@ -415,6 +422,7 @@ public class TileGodAltar extends TileAltar {
         return recipe.matches(this, this.getInventoryHandler(), ignoreStarlightRequirement);
     }
 
+    @Override
     public void onInteract(World world, BlockPos pos, EntityPlayer player, EnumFacing side, boolean sneaking) {
         if (!world.isRemote) {
             if (this.getAddedActiveCraftingTask() != null) {
@@ -456,7 +464,6 @@ public class TileGodAltar extends TileAltar {
             System.out.println("222");
 //                if (recipe != null) {
             System.out.println("333");
-//                    ActiveCraftingTask task = new ActiveCraftingTask(abstractAltarRecipe, abstractAltarRecipe.craftingTickTime(), craftingTask.getPlayerCraftingUUID());
                     if (recipe instanceof AddedAbstractAltarRecipe) {
             System.out.println("444");
                         AddedAbstractAltarRecipe recipe1 = (AddedAbstractAltarRecipe) recipe;
@@ -506,8 +513,10 @@ public class TileGodAltar extends TileAltar {
         return 3;
     }
 
+    @Override
     public void readCustomNBT(NBTTagCompound compound) {
         super.readCustomNBT(compound);
+
         this.level = AltarLevel.GOD_CRAFT;
         this.starlightStored = compound.getInteger("starlight");
         this.multiblockMatches = compound.getBoolean("multiblockMatches");
@@ -525,6 +534,7 @@ public class TileGodAltar extends TileAltar {
 
     }
 
+    @Override
     public void writeCustomNBT(NBTTagCompound compound) {
         super.writeCustomNBT(compound);
         compound.setInteger("level", this.level.ordinal());
@@ -541,11 +551,13 @@ public class TileGodAltar extends TileAltar {
 
     }
 
+    @Override
     @Nullable
     public String getUnLocalizedDisplayName() {
         return "tile.blockaltar.general.name";
     }
 
+    @Override
     @Nonnull
     public ITransmissionReceiver provideEndpoint(BlockPos at) {
         return new TileGodAltar.TransmissionReceiverAltar(at);

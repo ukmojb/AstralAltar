@@ -79,8 +79,8 @@ public class AddedAbstractAltarRecipe{
     }
 
     @Nullable
-    protected ActiveCraftingTask getCurrentTask(TileGodAltar ta) {
-        return ta.getActiveCraftingTask();
+    protected AddedActiveCraftingTask getCurrentTask(TileGodAltar ta) {
+        return ta.getAddedActiveCraftingTask();
     }
 
     //Output used for rendering purposes. (Shouldn't be empty)
@@ -182,22 +182,24 @@ public class AddedAbstractAltarRecipe{
     public void handleInputConsumption(TileGodAltar ta, AddedActiveCraftingTask craftingTask, ItemStackHandler inventory) {
         if (this.abstractAltarRecipe != null) {
 
-            ActiveCraftingTask task = new ActiveCraftingTask(abstractAltarRecipe, abstractAltarRecipe.craftingTickTime(), craftingTask.getPlayerCraftingUUID());
-            if (abstractAltarRecipe instanceof TraitRecipe) {
-                TraitRecipe traitRecipe = (TraitRecipe) abstractAltarRecipe;
-                traitRecipe.handleInputConsumption(ta, task, inventory);
-            } else if (abstractAltarRecipe instanceof ConstellationRecipe) {
-                ConstellationRecipe constellationRecipe = (ConstellationRecipe) abstractAltarRecipe;
-                constellationRecipe.handleInputConsumption(ta, task, inventory);
-            } else if (abstractAltarRecipe instanceof AttunementRecipe) {
-                AttunementRecipe attunementRecipe = (AttunementRecipe) abstractAltarRecipe;
-                attunementRecipe.handleInputConsumption(ta, task, inventory);
-            } else if (abstractAltarRecipe instanceof DiscoveryRecipe) {
-                DiscoveryRecipe discoveryRecipe = (DiscoveryRecipe) abstractAltarRecipe;
-                discoveryRecipe.handleInputConsumption(ta, task, inventory);
-            } else {
-                abstractAltarRecipe.handleInputConsumption(ta, task, inventory);
-            }
+            // ActiveCraftingTask task = new ActiveCraftingTask(abstractAltarRecipe, abstractAltarRecipe.craftingTickTime(), craftingTask.getPlayerCraftingUUID());
+            // if (abstractAltarRecipe instanceof TraitRecipe) {
+            //     TraitRecipe traitRecipe = (TraitRecipe) abstractAltarRecipe;
+            //     traitRecipe.handleInputConsumption(ta, task, inventory);
+            // } else if (abstractAltarRecipe instanceof ConstellationRecipe) {
+            //     ConstellationRecipe constellationRecipe = (ConstellationRecipe) abstractAltarRecipe;
+            //     constellationRecipe.handleInputConsumption(ta, task, inventory);
+            // } else if (abstractAltarRecipe instanceof AttunementRecipe) {
+            //     AttunementRecipe attunementRecipe = (AttunementRecipe) abstractAltarRecipe;
+            //     attunementRecipe.handleInputConsumption(ta, task, inventory);
+            // } else if (abstractAltarRecipe instanceof DiscoveryRecipe) {
+            //     DiscoveryRecipe discoveryRecipe = (DiscoveryRecipe) abstractAltarRecipe;
+            //     discoveryRecipe.handleInputConsumption(ta, task, inventory);
+            // } else 
+            // {
+//                abstractAltarRecipe.handleInputConsumption(ta, task, inventory);
+
+            // }
 
 //            abstractAltarRecipe.handleInputConsumption(ta, new ActiveCraftingTask(abstractAltarRecipe, abstractAltarRecipe.craftingTickTime(), craftingTask.getPlayerCraftingUUID()), inventory);
 

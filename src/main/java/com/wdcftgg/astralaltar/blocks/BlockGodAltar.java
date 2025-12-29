@@ -70,23 +70,7 @@ public class BlockGodAltar extends BlockAltar implements IHasModel {
     public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
         TileGodAltar te = (TileGodAltar) worldIn.getTileEntity(pos);
         if (te != null) {
-//                AstralAltar.proxy.openGui(CommonProxy.EnumGuiId.ALTAR_GOD, playerIn, worldIn, pos.getX(), pos.getY(), pos.getZ());
             playerIn.openGui(AstralAltar.instance, GUI_GodAltar, worldIn, pos.getX(), pos.getY(), pos.getZ());
-
-            if (playerIn.getHeldItem(EnumHand.MAIN_HAND).getDisplayName().equals(Items.STICK.getDefaultInstance().getDisplayName())) {
-//                for (TileGodAltar.AltarLevel altarLevel : AddedAltarRecipeRegistry.recipes.keySet()) {
-//                    System.out.println(altarLevel);
-//                    List<AddedAbstractAltarRecipe> list = AddedAltarRecipeRegistry.recipes.get(altarLevel);
-//                    for (AddedAbstractAltarRecipe recipe : list) {
-//                        System.out.println(recipe.getNativeRecipe().getRegistryName().toString() + "--" + recipe.getUniqueRecipeId());
-//                    }
-//                }
-                if (getRecipe(117) != null) {
-                    System.out.println(getRecipe(117).getOutputForMatching());
-                } else {
-                    System.out.println("null");
-                }
-            }
             return true;
         }
 

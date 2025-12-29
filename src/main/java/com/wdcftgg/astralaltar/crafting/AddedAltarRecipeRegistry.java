@@ -259,26 +259,26 @@ public class AddedAltarRecipeRegistry {
             }
         }
 
-        for (int i = TileAltar.AltarLevel.TRAIT_CRAFT.ordinal(); i >= 0; i--) {
-            TileAltar.AltarLevel lvl = TileAltar.AltarLevel.values()[i];
-            List<AbstractAltarRecipe> lowerValidRecipes = AltarRecipeRegistry.recipes.get(lvl);
-
-            if(lowerValidRecipes != null) {
-                for (AbstractAltarRecipe rec : lowerValidRecipes) {
-                    if(ta.doesRecipeMatch(rec, ignoreStarlightRequirement)) {
-                        return rec;
-                    }
-                }
-            }
-            lowerValidRecipes = AltarRecipeRegistry.mtRecipes.get(lvl);
-            if(lowerValidRecipes != null) {
-                for (AbstractAltarRecipe rec : lowerValidRecipes) {
-                    if(ta.doesRecipeMatch(rec, ignoreStarlightRequirement)) {
-                        return rec;
-                    }
-                }
-            }
-        }
+//        for (int i = TileAltar.AltarLevel.TRAIT_CRAFT.ordinal(); i >= 0; i--) {
+//            TileAltar.AltarLevel lvl = TileAltar.AltarLevel.values()[i];
+//            List<AbstractAltarRecipe> lowerValidRecipes = AltarRecipeRegistry.recipes.get(lvl);
+//
+//            if(lowerValidRecipes != null) {
+//                for (AbstractAltarRecipe rec : lowerValidRecipes) {
+//                    if(ta.doesRecipeMatch(rec, ignoreStarlightRequirement)) {
+//                        return rec;
+//                    }
+//                }
+//            }
+//            lowerValidRecipes = AltarRecipeRegistry.mtRecipes.get(lvl);
+//            if(lowerValidRecipes != null) {
+//                for (AbstractAltarRecipe rec : lowerValidRecipes) {
+//                    if(ta.doesRecipeMatch(rec, ignoreStarlightRequirement)) {
+//                        return rec;
+//                    }
+//                }
+//            }
+//        }
 
         return null;
         /*List<TileGodAltar.AltarLevel> levels = new ArrayList<>();

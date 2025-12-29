@@ -101,11 +101,11 @@ public class AddedActiveCraftingTask{
                 return false;
             }
         }
-        if(recipeToCraft instanceof ICraftingProgress) {
-            if (!((ICraftingProgress) recipeToCraft).tryProcess(altar, new ActiveCraftingTask(recipeToCraft1, recipeToCraft1.craftingTickTime(), this.getPlayerCraftingUUID()), craftingData, ticksCrafting, totalCraftingTime)) {
-                return false;
-            }
-        }
+        // if(recipeToCraft instanceof ICraftingProgress) {
+        //     if (!((ICraftingProgress) recipeToCraft).tryProcess(altar, new ActiveCraftingTask(recipeToCraft1, recipeToCraft1.craftingTickTime(), this.getPlayerCraftingUUID()), craftingData, ticksCrafting, totalCraftingTime)) {
+        //         return false;
+        //     }
+        // }
         ticksCrafting++;
         return true;
     }
