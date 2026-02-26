@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
 import hellfirepvp.astralsorcery.common.crafting.ISpecialCraftingEffects;
-import hellfirepvp.astralsorcery.common.crafting.altar.AbstractAltarRecipe;
 import hellfirepvp.astralsorcery.common.crafting.altar.AltarRecipeRegistry;
 import hellfirepvp.astralsorcery.common.crafting.helper.AccessibleRecipeAdapater;
 import hellfirepvp.astralsorcery.common.crafting.helper.CraftingAccessManager;
@@ -232,7 +231,7 @@ public class AddedAltarRecipeRegistry {
 
     @Nullable
     public static Object findMatchingRecipe(TileGodAltar ta, boolean ignoreStarlightRequirement) {
-        TileGodAltar.AltarLevel lowestAllowed = ta.matchDownMultiblocks(TileGodAltar.AltarLevel.GOD_CRAFT);
+        TileGodAltar.AltarLevel lowestAllowed = ta.matchDownMultiblocks(ta.getGodAltarLevel());
         if (lowestAllowed == null) {
             lowestAllowed = TileGodAltar.AltarLevel.GOD_CRAFT;
         }
@@ -243,7 +242,6 @@ public class AddedAltarRecipeRegistry {
             if(!validRecipes.isEmpty()) {
                 for (AddedAbstractAltarRecipe rec : validRecipes) {
                     if(ta.doesRecipeMatch(rec, ignoreStarlightRequirement)) {
-//                        System.out.println("777");
                         return rec;
                     }
                 }
@@ -252,7 +250,6 @@ public class AddedAltarRecipeRegistry {
             if(!validRecipes.isEmpty()) {
                 for (AddedAbstractAltarRecipe rec : validRecipes) {
                     if(ta.doesRecipeMatch(rec, ignoreStarlightRequirement)) {
-//                        System.out.println("888");
                         return rec;
                     }
                 }

@@ -23,7 +23,6 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
@@ -43,8 +42,8 @@ import net.minecraftforge.items.IItemHandler;
 import javax.annotation.Nullable;
 import java.util.Map;
 
-import static com.wdcftgg.astralaltar.crafting.AddedAltarRecipeRegistry.getRecipe;
 import static com.wdcftgg.astralaltar.gui.GuiElementLoader.GUI_GodAltar;
+import static hellfirepvp.astralsorcery.common.util.ItemUtils.dropItemNaturally;
 
 public class BlockGodAltar extends BlockAltar implements IHasModel {
     public static PropertyBool RENDER_FULLY = PropertyBool.create("render");
@@ -96,14 +95,9 @@ public class BlockGodAltar extends BlockAltar implements IHasModel {
             te.onBreak();
         }
 
-        TileEntity inv = (TileEntity)MiscUtils.getTileAt(worldIn, pos, TileEntity.class, true);
-        if (inv != null && !worldIn.isRemote) {
-            EnumFacing[] var6 = EnumFacing.VALUES;
-            int var7 = var6.length;
-
-            for(int var8 = 0; var8 < var7; ++var8) {
-                EnumFacing face = var6[var8];
-                IItemHandler handle = (IItemHandler)inv.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, face);
+        if (te != null && !worldIn.isRemote) {
+            for (EnumFacing face : EnumFacing.VALUES) {
+                IItemHandler handle = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, face);
                 if (handle != null) {
                     ItemUtils.dropInventory(handle, worldIn, pos);
                     break;

@@ -1,6 +1,9 @@
 package com.wdcftgg.astralaltar.proxy;
 
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
+import com.wdcftgg.astralaltar.cilent.ClientConnectionEventHandler;
+import com.wdcftgg.astralaltar.cilent.effect.NewEffectHandler;
+import com.wdcftgg.astralaltar.cilent.render.StarlightTextureStitcher;
 import com.wdcftgg.astralaltar.cilent.tile.RenderAltarGod;
 import com.wdcftgg.astralaltar.init.ParticleInit;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -10,6 +13,7 @@ import net.minecraft.client.renderer.entity.layers.LayerRenderer;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.Item;
 import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 
@@ -28,17 +32,20 @@ public class ClientProxy extends CommonProxy{
 
 	public void onInit(){
 		super.onInit();
-//		MinecraftForge.EVENT_BUS.register(new EventLossSpatialSense());
+
+		MinecraftForge.EVENT_BUS.register(NewEffectHandler.getInstance());
+		MinecraftForge.EVENT_BUS.register(new ClientConnectionEventHandler());
 	}
 
 
 
-	public void onPreInit() {
-		super.onPreInit();
+    public void onPreInit() {
+        super.onPreInit();
 
 //		RenderingRegistry.registerEntityRenderingHandler(EntityTimeCrack.class, RenderTimeCrack::new);
 
-		registerTileRenderers();
+        registerTileRenderers();
+        MinecraftForge.EVENT_BUS.register(new StarlightTextureStitcher());
 
 
 //		AddedRegistryRecipes.initAstralRecipes();

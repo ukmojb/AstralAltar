@@ -3,10 +3,7 @@ package com.wdcftgg.astralaltar.crafting;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
 import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.common.crafting.ICraftingProgress;
 import hellfirepvp.astralsorcery.common.crafting.altar.AbstractAltarRecipe;
-import hellfirepvp.astralsorcery.common.crafting.altar.ActiveCraftingTask;
-import hellfirepvp.astralsorcery.common.tile.TileAltar;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -77,7 +74,7 @@ public class AddedActiveCraftingTask{
     }
 
     public boolean shouldPersist(TileGodAltar ta) {
-        return recipeToCraft instanceof GodRecipe || ta.getGodAltarLevel().ordinal() >= TileAltar.AltarLevel.TRAIT_CRAFT.ordinal();
+        return recipeToCraft instanceof GodRecipe || ta.getGodAltarLevel().ordinal() >= TileGodAltar.AltarLevel.TRAIT_CRAFT.ordinal();
     }
 
     public UUID getPlayerCraftingUUID() {
@@ -101,11 +98,6 @@ public class AddedActiveCraftingTask{
                 return false;
             }
         }
-        // if(recipeToCraft instanceof ICraftingProgress) {
-        //     if (!((ICraftingProgress) recipeToCraft).tryProcess(altar, new ActiveCraftingTask(recipeToCraft1, recipeToCraft1.craftingTickTime(), this.getPlayerCraftingUUID()), craftingData, ticksCrafting, totalCraftingTime)) {
-        //         return false;
-        //     }
-        // }
         ticksCrafting++;
         return true;
     }

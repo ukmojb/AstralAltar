@@ -3,13 +3,8 @@ package com.wdcftgg.astralaltar.init;
 
 import com.wdcftgg.astralaltar.blocks.ModBlocks;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
-import com.wdcftgg.astralaltar.crafting.AddedRegistryRecipes;
 import com.wdcftgg.astralaltar.items.ModItems;
 import com.wdcftgg.astralaltar.util.IHasModel;
-import hellfirepvp.astralsorcery.common.base.LightOreTransmutations;
-import hellfirepvp.astralsorcery.common.base.LiquidInteraction;
-import hellfirepvp.astralsorcery.common.base.WellLiquefaction;
-import hellfirepvp.astralsorcery.common.registry.RegistryRecipes;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;

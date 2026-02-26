@@ -7,7 +7,6 @@ import hellfirepvp.astralsorcery.common.crafting.IGatedRecipe;
 import hellfirepvp.astralsorcery.common.crafting.INighttimeRecipe;
 import hellfirepvp.astralsorcery.common.crafting.ItemHandle;
 import hellfirepvp.astralsorcery.common.crafting.altar.AbstractAltarRecipe;
-import hellfirepvp.astralsorcery.common.crafting.altar.ActiveCraftingTask;
 import hellfirepvp.astralsorcery.common.crafting.altar.RecipeAdapter;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.ConstellationRecipe;
@@ -108,6 +107,17 @@ public class AddedAbstractAltarRecipe{
 
     //Instead of calling this directly, call it via TileGodAltar.doesRecipeMatch() since that is more sensitive for the altar.
     public boolean matches(TileGodAltar altar, TileReceiverBaseInventory.ItemHandlerTile invHandler, boolean ignoreStarlightRequirement) {
+
+        boolean levelPass = true;
+
+        if (abstractAltarRecipe instanceof TraitRecipe) {
+            levelPass = matchesLevel(invHandler, altar, TileGodAltar.AltarLevel.TRAIT_CRAFT);
+        } else if (abstractAltarRecipe instanceof ConstellationRecipe) {
+            levelPass = matchesLevel(invHandler, altar, TileGodAltar.AltarLevel.CONSTELLATION_CRAFT);
+        } else if (abstractAltarRecipe instanceof AttunementRecipe) {
+            levelPass = matchesLevel(invHandler, altar, TileGodAltar.AltarLevel.ATTUNEMENT);
+        }
+
         if(!ignoreStarlightRequirement && !fulfillesStarlightRequirement(altar)) return false;
 
         if(this instanceof IGatedRecipe) {
@@ -135,7 +145,7 @@ public class AddedAbstractAltarRecipe{
         }
         RecipeAdapter adapter = new RecipeAdapter(altar.getCraftingRecipeWidth(), altar.getCraftingRecipeHeight());
         adapter.fill(altarInv);
-        return recipe.matches(adapter, altar.getWorld());
+        return recipe.matches(adapter, altar.getWorld()) && levelPass;
     }
 
     public boolean fulfillesStarlightRequirement(TileGodAltar altar) {
@@ -174,6 +184,15 @@ public class AddedAbstractAltarRecipe{
 
     public int craftingTickTime() {
         if (this.abstractAltarRecipe != null) {
+            if (abstractAltarRecipe instanceof TraitRecipe) {
+                return 700;
+            } else if (abstractAltarRecipe instanceof ConstellationRecipe) {
+                return 500;
+            } else if (abstractAltarRecipe instanceof AttunementRecipe) {
+                return 300;
+            } else if (abstractAltarRecipe instanceof DiscoveryRecipe) {
+                return 100;
+            }
             return this.abstractAltarRecipe.craftingTickTime();
         }
         return 100;
@@ -181,29 +200,15 @@ public class AddedAbstractAltarRecipe{
 
     public void handleInputConsumption(TileGodAltar ta, AddedActiveCraftingTask craftingTask, ItemStackHandler inventory) {
         if (this.abstractAltarRecipe != null) {
-
-            // ActiveCraftingTask task = new ActiveCraftingTask(abstractAltarRecipe, abstractAltarRecipe.craftingTickTime(), craftingTask.getPlayerCraftingUUID());
-            // if (abstractAltarRecipe instanceof TraitRecipe) {
-            //     TraitRecipe traitRecipe = (TraitRecipe) abstractAltarRecipe;
-            //     traitRecipe.handleInputConsumption(ta, task, inventory);
-            // } else if (abstractAltarRecipe instanceof ConstellationRecipe) {
-            //     ConstellationRecipe constellationRecipe = (ConstellationRecipe) abstractAltarRecipe;
-            //     constellationRecipe.handleInputConsumption(ta, task, inventory);
-            // } else if (abstractAltarRecipe instanceof AttunementRecipe) {
-            //     AttunementRecipe attunementRecipe = (AttunementRecipe) abstractAltarRecipe;
-            //     attunementRecipe.handleInputConsumption(ta, task, inventory);
-            // } else if (abstractAltarRecipe instanceof DiscoveryRecipe) {
-            //     DiscoveryRecipe discoveryRecipe = (DiscoveryRecipe) abstractAltarRecipe;
-            //     discoveryRecipe.handleInputConsumption(ta, task, inventory);
-            // } else 
-            // {
-//                abstractAltarRecipe.handleInputConsumption(ta, task, inventory);
-
-            // }
-
-//            abstractAltarRecipe.handleInputConsumption(ta, new ActiveCraftingTask(abstractAltarRecipe, abstractAltarRecipe.craftingTickTime(), craftingTask.getPlayerCraftingUUID()), inventory);
-
-
+             if (abstractAltarRecipe instanceof TraitRecipe) {
+                 this.handleInputConsumptionLevel(inventory, ta, TileGodAltar.AltarLevel.TRAIT_CRAFT);
+             } else if (abstractAltarRecipe instanceof ConstellationRecipe) {
+                 this.handleInputConsumptionLevel(inventory, ta, TileGodAltar.AltarLevel.CONSTELLATION_CRAFT);
+             } else if (abstractAltarRecipe instanceof AttunementRecipe) {
+                 this.handleInputConsumptionLevel(inventory, ta, TileGodAltar.AltarLevel.ATTUNEMENT);
+             } else if (abstractAltarRecipe instanceof DiscoveryRecipe) {
+                 this.handleInputConsumptionLevel(inventory, ta, TileGodAltar.AltarLevel.DISCOVERY);
+             }
         }
     }
 
@@ -237,7 +242,7 @@ public class AddedAbstractAltarRecipe{
     public boolean mayDecrement(TileGodAltar ta, GodRecipe.GodRecipeSlot slot) {
         if(!(this instanceof GodRecipe)) return true;
         GodRecipe thisRecipe = (GodRecipe) this;
-        return !requiresSpecialConsumption(thisRecipe.getInnerGodItemHandle(slot),
+        return !requiresSpecialConsumption(thisRecipe.getGodItemHandle(slot),
                 ta.getInventoryHandler().getStackInSlot(slot.getSlotId()));
     }
 
@@ -285,7 +290,7 @@ public class AddedAbstractAltarRecipe{
     public void handleItemConsumption(TileGodAltar ta, GodRecipe.GodRecipeSlot slot) {
         if(!(this instanceof GodRecipe)) return;
         GodRecipe thisRecipe = (GodRecipe) this;
-        ItemHandle handle = thisRecipe.getInnerGodItemHandle(slot);
+        ItemHandle handle = thisRecipe.getGodItemHandle(slot);
         if(handle == null) return;
 
         consumeAndSetResult(ta.getInventoryHandler(), slot.getSlotId(), handle);
@@ -343,4 +348,98 @@ public class AddedAbstractAltarRecipe{
         }
     }
 
+    private void handleInputConsumptionLevel(ItemStackHandler inventory, TileGodAltar ta, TileGodAltar.AltarLevel altarLevel) {
+
+        if (altarLevel.ordinal() >= 3) { // TRAIT_CRAFT
+            for (TraitRecipe.TraitRecipeSlot slot : TraitRecipe.TraitRecipeSlot.values()) {
+                int slotId = slot.getSlotId();
+                if(mayDecrement(ta, slot)) {
+                    ItemUtils.decrStackInInventory(inventory, slotId);
+                } else {
+                    handleItemConsumption(ta, slot);
+                }
+            }
+        }
+
+        if (altarLevel.ordinal() >= 2) { // CONSTELLATION_CRAFT
+            for (ConstellationRecipe.ConstellationAtlarSlot slot : ConstellationRecipe.ConstellationAtlarSlot.values()) {
+                int slotId = slot.getSlotId();
+                if(mayDecrement(ta, slot)) {
+                    ItemUtils.decrStackInInventory(inventory, slotId);
+                } else {
+                    handleItemConsumption(ta, slot);
+                }
+            }
+        }
+
+        if (altarLevel.ordinal() >= 1) { // ATTUNEMENT
+            for (AttunementRecipe.AttunementAltarSlot slot : AttunementRecipe.AttunementAltarSlot.values()) {
+                int slotId = slot.getSlotId();
+                if(mayDecrement(ta, slot)) {
+                    ItemUtils.decrStackInInventory(inventory, slotId);
+                } else {
+                    handleItemConsumption(ta, slot);
+                }
+            }
+        }
+
+        // DISCOVERY
+        for (int i = 0; i < 9; i++) {
+            ShapedRecipeSlot slot = ShapedRecipeSlot.getByRowColumnIndex(i / 3, i % 3);
+            if(mayDecrement(ta, slot)) {
+                ItemUtils.decrStackInInventory(inventory, i);
+            } else {
+                handleItemConsumption(ta, slot);
+            }
+        }
+    }
+    private boolean matchesLevel(TileReceiverBaseInventory.ItemHandlerTile invHandler, TileGodAltar ta, TileGodAltar.AltarLevel altarLevel) {
+
+        if (altarLevel.ordinal() >= 3) { // TRAIT_CRAFT
+            TraitRecipe traitRecipe = (TraitRecipe) this.abstractAltarRecipe;
+            for (TraitRecipe.TraitRecipeSlot slot : TraitRecipe.TraitRecipeSlot.values()) {
+                ItemHandle expected = traitRecipe.getInnerTraitItemHandle(slot);
+                if(expected != null) {
+                    ItemStack altarItem = invHandler.getStackInSlot(slot.getSlotId());
+                    if(!expected.matchCrafting(altarItem)) {
+                        return false;
+                    }
+                } else {
+                    if(!invHandler.getStackInSlot(slot.getSlotId()).isEmpty()) return false;
+                }
+            }
+        }
+
+        if (altarLevel.ordinal() >= 2) { // CONSTELLATION_CRAFT
+            ConstellationRecipe constellationRecipe = (ConstellationRecipe) this.abstractAltarRecipe;
+            for (ConstellationRecipe.ConstellationAtlarSlot slot : ConstellationRecipe.ConstellationAtlarSlot.values()) {
+                ItemHandle expected = constellationRecipe.getCstItemHandle(slot);
+                if(expected != null) {
+                    ItemStack altarItem = invHandler.getStackInSlot(slot.getSlotId());
+                    if(!expected.matchCrafting(altarItem)) {
+                        return false;
+                    }
+                } else {
+                    if(!invHandler.getStackInSlot(slot.getSlotId()).isEmpty()) return false;
+                }
+            }
+        }
+
+        if (altarLevel.ordinal() >= 1) { // ATTUNEMENT
+            AttunementRecipe attunementRecipe = (AttunementRecipe) this.abstractAltarRecipe;
+            for (AttunementRecipe.AttunementAltarSlot slot : AttunementRecipe.AttunementAltarSlot.values()) {
+                ItemHandle expected = attunementRecipe.getAttItemHandle(slot);
+                if(expected != null) {
+                    ItemStack altarItem = invHandler.getStackInSlot(slot.getSlotId());
+                    if(!expected.matchCrafting(altarItem)) {
+                        return false;
+                    }
+                } else {
+                    if(!invHandler.getStackInSlot(slot.getSlotId()).isEmpty()) return false;
+                }
+            }
+        }
+
+        return true;
+    }
 }

@@ -113,6 +113,8 @@ public class RenderAltarGod extends TileEntitySpecialRenderer<TileGodAltar> {
         if(task != null) {
             task.getRecipeToCraft().onCraftTESRRender(te, x, y, z, partialTicks);
         }
+
+
     }
 
 }

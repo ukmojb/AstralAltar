@@ -2,8 +2,8 @@
   "package": "com.wdcftgg.astralaltar.mixin",
   "refmap": "mixins.astralaltar.refmap.json",
   "mixins": [
-    "MixinTraitRecipe",
-    "block.MixinBlockAttunementRelay"
+    "block.MixinBlockAttunementRelay",
+    "item.MixinItemSextant"
   ],
   "server": [
   ],

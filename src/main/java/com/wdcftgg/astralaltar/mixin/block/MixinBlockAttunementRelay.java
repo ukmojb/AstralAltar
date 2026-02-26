@@ -23,10 +23,8 @@ public class MixinBlockAttunementRelay {
 
     @Inject(method = "startSearchRelayLinkThreadAt",
             at = @At(value = "HEAD", target = "Lhellfirepvp/astralsorcery/common/block/BlockAttunementRelay;startSearchRelayLinkThreadAt(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Z)V")
-//            ,remap = false
     )
     private static void startSearchRelayLinkThreadAt(World world, BlockPos pos, boolean recUpdate, CallbackInfo ci) {
-//        System.out.println("awdasdcawdawdscadwqe");
         Thread searchThread = new Thread(() -> {
             BlockPos closestAltar = null;
             double dstSqOtherRelay = Double.MAX_VALUE;
@@ -57,7 +55,7 @@ public class MixinBlockAttunementRelay {
                 }
             });
         });
-        searchThread.setName("AttRelay PositionFinder at " + pos.toString());
+        searchThread.setName("[AstralAltar] AttRelay PositionFinder at " + pos.toString());
         searchThread.start();
     }
 }

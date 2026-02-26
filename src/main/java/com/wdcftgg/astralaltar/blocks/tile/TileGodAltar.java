@@ -19,13 +19,13 @@ import hellfirepvp.astralsorcery.common.constellation.distribution.WorldSkyHandl
 import hellfirepvp.astralsorcery.common.crafting.IGatedRecipe;
 import hellfirepvp.astralsorcery.common.crafting.ItemHandle;
 import hellfirepvp.astralsorcery.common.crafting.altar.AbstractAltarRecipe;
-import hellfirepvp.astralsorcery.common.crafting.altar.ActiveCraftingTask;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapeMap;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
 import hellfirepvp.astralsorcery.common.entities.EntityFlare;
 import hellfirepvp.astralsorcery.common.item.base.IWandInteract;
 import hellfirepvp.astralsorcery.common.item.base.ItemConstellationFocus;
 import hellfirepvp.astralsorcery.common.item.block.ItemBlockAltar;
+import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.MultiBlockArrays;
 import hellfirepvp.astralsorcery.common.lib.Sounds;
 import hellfirepvp.astralsorcery.common.network.PacketChannel;
@@ -36,10 +36,12 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.registry.Transmis
 import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
 import hellfirepvp.astralsorcery.common.structure.change.ChangeSubscriber;
 import hellfirepvp.astralsorcery.common.structure.match.StructureMatcherPatternArray;
+import hellfirepvp.astralsorcery.common.tile.ILiquidStarlightPowered;
 import hellfirepvp.astralsorcery.common.tile.IMultiblockDependantTile;
 import hellfirepvp.astralsorcery.common.tile.TileAltar;
 import hellfirepvp.astralsorcery.common.tile.base.TileReceiverBaseInventory;
 import hellfirepvp.astralsorcery.common.util.*;
+import hellfirepvp.astralsorcery.common.util.block.SimpleSingleFluidCapabilityTank;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.log.LogCategory;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
@@ -55,15 +57,20 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.items.CapabilityItemHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.Random;
 
-public class TileGodAltar extends TileReceiverBaseInventory implements IWandInteract, IMultiblockDependantTile {
+public class TileGodAltar extends TileReceiverBaseInventory implements IWandInteract, IMultiblockDependantTile, ILiquidStarlightPowered {
 
     private static final Random rand = new Random();
     private float posDistribution = -1.0F;
@@ -75,6 +82,8 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     private ItemStack focusItem;
     private boolean doesSeeSky;
     private int starlightStored;
+    private static final int TANK_SIZE = Integer.MAX_VALUE;
+    private SimpleSingleFluidCapabilityTank tank;
 
 
     public TileGodAltar() {
@@ -87,6 +96,8 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         this.starlightStored = 0;
         this.level = AltarLevel.GOD_CRAFT;
 
+        tank = new SimpleSingleFluidCapabilityTank(TANK_SIZE, EnumFacing.DOWN);
+        this.tank.setOnUpdate(this::markForUpdate);
     }
 
     @Override
@@ -201,7 +212,7 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        AxisAlignedBB box = super.getRenderBoundingBox().expand(0.0, 5.0, 0.0);
+        AxisAlignedBB box = super.getRenderBoundingBox().expand(0.0, 10.0, 0.0);
         if (this.level != null) {
             box = box.grow(3.0, 0.0, 3.0);
         }
@@ -235,7 +246,6 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         if (this.craftingTask == null) {
             return needUpdate;
         } else {
-//            System.out.println("111");
             AddedAbstractAltarRecipe altarRecipe = this.craftingTask.getRecipeToCraft();
             if (!this.doesRecipeMatch(altarRecipe, true)) {
                 this.abortCrafting();
@@ -283,9 +293,6 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
             }
 
             this.starlightStored = Math.max(0, this.starlightStored - recipe.getPassiveStarlightRequired());
-//            System.out.println(!recipe.allowsForChaining() + "--!recipe.allowsForChaining()");
-//            System.out.println(!this.doesRecipeMatch(recipe, false) + "--!this.doesRecipeMatch(recipe, false)");
-//            System.out.println((this.matchDownNewMultiblocks(AltarLevel.GOD_CRAFT) == null) + "--this.matchDownNewMultiblocks(AltarLevel.GOD_CRAFT) == null");
             if (!recipe.allowsForChaining() || !this.doesRecipeMatch(recipe, false) || this.matchDownNewMultiblocks(AltarLevel.GOD_CRAFT) == null) {
                 if (this.getAltarLevel().ordinal() >= TileAltar.AltarLevel.CONSTELLATION_CRAFT.ordinal()) {
                     Vector3 pos = (new Vector3(this.getPos())).add(0.5, 0.0, 0.5);
@@ -302,7 +309,6 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
                     }
                 }
 
-//                ResearchManager.informCraftingAltarCompletion(this, this.craftingTask);
                 SoundHelper.playSoundAround(Sounds.craftFinish, this.world, this.getPos(), 1.0F, 1.7F);
                 EntityFlare.spawnAmbient(this.world, (new Vector3(this)).add((double)(-3.0F + rand.nextFloat() * 7.0F), 0.6, (double)(-3.0F + rand.nextFloat() * 7.0F)));
                 this.craftingTask = null;
@@ -365,7 +371,6 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
                 collect = (float)((double)collect * (0.2 + 0.8 * (double)ConstellationSkyHandler.getInstance().getCurrentDaytimeDistribution(this.getWorld())));
                 int num = Math.min(this.getMaxStarlightStorage(), (int)((float)this.starlightStored + collect));
                 this.starlightStored = num;
-//                System.out.println(num + "--" + this.getMaxStarlightStorage());
                 this.starlightStored = (int) Math.min(num + this.getMaxStarlightStorage() * 0.03, this.getMaxStarlightStorage());
                 return true;
             }
@@ -459,13 +464,9 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         if (this.craftingTask == null) {
             Object recipe = AddedAltarRecipeRegistry.findMatchingRecipe(this, false);
 //            AddedAbstractAltarRecipe recipe = AddedAltarRecipeRegistry.findMatchingRecipe(this, false);
-            System.out.println("111");
             if (!(recipe instanceof IGatedRecipe) || ((IGatedRecipe)recipe).hasProgressionServer(crafter)) {
-            System.out.println("222");
 //                if (recipe != null) {
-            System.out.println("333");
                     if (recipe instanceof AddedAbstractAltarRecipe) {
-            System.out.println("444");
                         AddedAbstractAltarRecipe recipe1 = (AddedAbstractAltarRecipe) recipe;
                         int divisor = Math.max(0, this.getAltarLevel().ordinal() - recipe1.getNeededLevel().ordinal());
                         divisor = (int) Math.round(Math.pow(2.0, (double) divisor));
@@ -473,17 +474,12 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
                         this.markForUpdate();
                     }
                     if (recipe instanceof AbstractAltarRecipe) {
-            System.out.println("555");
                         AbstractAltarRecipe recipe1 = (AbstractAltarRecipe) recipe;
                         int divisor = Math.max(0, this.getAltarLevel().ordinal() - recipe1.getNeededLevel().ordinal());
                         divisor = (int) Math.round(Math.pow(2.0, (double) divisor));
                         this.craftingTask = new AddedActiveCraftingTask(recipe1, divisor, crafter.getUniqueID());
                         this.markForUpdate();
                     }
-
-
-//                }
-
             }
         }
     }
@@ -520,6 +516,11 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         this.level = AltarLevel.GOD_CRAFT;
         this.starlightStored = compound.getInteger("starlight");
         this.multiblockMatches = compound.getBoolean("multiblockMatches");
+        this.tank = SimpleSingleFluidCapabilityTank.deserialize(compound.getCompoundTag("tank"));
+        if(!tank.hasCapability(EnumFacing.DOWN)) {
+            tank.accessibleSides.add(EnumFacing.DOWN);
+        }
+        this.tank.setOnUpdate(this::markForUpdate);
         if (compound.hasKey("craftingTask")) {
             this.craftingTask = AddedActiveCraftingTask.deserialize(compound.getCompoundTag("craftingTask"), this.craftingTask);
         } else {
@@ -540,6 +541,7 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         compound.setInteger("level", this.level.ordinal());
         compound.setInteger("starlight", this.starlightStored);
         compound.setBoolean("multiblockMatches", this.multiblockMatches);
+        compound.setTag("tank", tank.writeNBT());
         if (!this.focusItem.isEmpty()) {
             ItemStack var10002 = this.focusItem;
             NBTHelper.setAsSubTag(compound, "focusItem", var10002::writeToNBT);
@@ -571,6 +573,49 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     @SideOnly(Side.CLIENT)
     public static void finishBurst(PktParticleEvent event) {
         EffectHandler.getInstance().textureSpritePlane(SpriteLibrary.spriteCraftBurst, Vector3.RotAxis.Y_AXIS.clone()).setPosition(event.getVec()).setScale((float)(5 + rand.nextInt(2))).setNoRotation((float)rand.nextInt(360));
+    }
+
+    public SimpleSingleFluidCapabilityTank getTank() {
+        return tank;
+    }
+
+    @Override
+    public boolean canAcceptStarlight(int mbLiquidStarlight) {
+        return getHeldFluid() == null ||
+                getFluidAmount() <= 0 ||
+                (getHeldFluid() == BlocksAS.fluidLiquidStarlight &&
+                        getFluidAmount() + mbLiquidStarlight <= TANK_SIZE);
+    }
+
+    public int getFluidAmount() {
+        return tank.getFluidAmount();
+    }
+
+    @Nullable
+    public Fluid getHeldFluid() {
+        return tank.getTankFluid();
+    }
+
+    @Override
+    public void acceptStarlight(int mbLiquidStarlight) {
+        if(canAcceptStarlight(mbLiquidStarlight)) {
+            getTank().fill(new FluidStack(BlocksAS.fluidLiquidStarlight, mbLiquidStarlight), true);
+            markForUpdate();
+        }
+    }
+
+    @Override
+    public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
+        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) return true;
+        return super.hasCapability(capability, facing);
+    }
+
+    @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
+            return (T) tank.getCapability(facing);
+        }
+        return super.getCapability(capability, facing);
     }
 
     public static class AltarReceiverProvider implements TransmissionClassRegistry.TransmissionProvider {
@@ -668,5 +713,13 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         IBlockState thisState = this.world.getBlockState(this.pos);
         this.world.notifyBlockUpdate(this.pos, thisState, thisState, 3);
         this.markDirty();
+    }
+
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public double getMaxRenderDistanceSquared ()
+    {
+        return 65536.0D;
     }
 }

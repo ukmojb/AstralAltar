@@ -1,3 +1,16 @@
 com.wdcftgg.astralaltar.crafting.recipe.GodRecipe.matches
 
 重写配方匹配
+
+26.2.12
+重写com.wdcftgg.astralaltar.crafting.AddedAbstractAltarRecipe.handleInputConsumption
+
+AttunementRecipe及以上的祭坛物品不消耗
+
+26.2.22
+消耗物品逻辑完毕
+接下来写星能液消耗,并让星能液进度与渲染的方块高度相同
+
+26.2.27
+所有逻辑完毕,特效有待改进
+然后做jei支持

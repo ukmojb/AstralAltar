@@ -5,6 +5,7 @@ import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.crafting.AddedAbstractAltarRecipe;
 import com.wdcftgg.astralaltar.crafting.AddedActiveCraftingTask;
 import com.wdcftgg.astralaltar.crafting.IAddedCraftingProgress;
+import com.wdcftgg.astralaltar.init.multiblock.MultiblockContainmentChalice;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.effect.EffectHandler;
 import hellfirepvp.astralsorcery.client.effect.EffectHelper;
@@ -14,48 +15,72 @@ import hellfirepvp.astralsorcery.client.effect.light.EffectLightbeam;
 import hellfirepvp.astralsorcery.client.util.Blending;
 import hellfirepvp.astralsorcery.client.util.ItemColorizationHelper;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
+import hellfirepvp.astralsorcery.common.auxiliary.LiquidStarlightChaliceHandler;
 import hellfirepvp.astralsorcery.common.block.network.BlockCollectorCrystal;
 import hellfirepvp.astralsorcery.common.constellation.IConstellation;
 import hellfirepvp.astralsorcery.common.crafting.ItemHandle;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe;
+import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe.AttunementAltarSlot;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.ConstellationRecipe;
-import hellfirepvp.astralsorcery.common.crafting.altar.recipes.TraitRecipe;
+import hellfirepvp.astralsorcery.common.crafting.altar.recipes.ConstellationRecipe.ConstellationAtlarSlot;
+import hellfirepvp.astralsorcery.common.crafting.altar.recipes.TraitRecipe.TraitRecipeSlot;
 import hellfirepvp.astralsorcery.common.crafting.helper.AccessibleRecipe;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
+import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.tile.TileAttunementRelay;
+import hellfirepvp.astralsorcery.common.tile.TileChalice;
 import hellfirepvp.astralsorcery.common.tile.base.TileReceiverBaseInventory;
 import hellfirepvp.astralsorcery.common.util.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.renderer.vertex.VertexFormat;
+import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.NonNullList;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import com.wdcftgg.astralaltar.cilent.render.BakedQuadRetextured;
+import net.minecraft.world.World;
+import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraftforge.client.model.pipeline.LightUtil;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidActionResult;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemStackHandler;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.BufferUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
+import java.nio.DoubleBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,10 +88,15 @@ import java.util.Random;
 
 public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftingProgress {
 
+    private static final ResourceLocation starlightLiquidStill = new ResourceLocation("astralsorcery:blocks/fluid/starlight_still");
+
+
+
     private List<ItemHandle> additionallyRequiredStacks = Lists.newLinkedList();
     private Map<GodRecipeSlot, ItemHandle> matchGodStacks = new HashMap<>();
     private IConstellation requiredConstellation = null;
     private Map<TraitRecipeSlot, ItemHandle> matchTraitStacks = new HashMap<>();
+    private int liquidStarlightRequired = 0;
 
     private static Vector3[] offsetPillars = new Vector3[] {
             new Vector3( 4, 3,  4),
@@ -281,74 +311,41 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         return matchTraitStacks.get(slot);
     }
 
-    public GodRecipe setInnerGodItem(Item i, GodRecipeSlot... slots) {
-        return setInnerGodItem(new ItemStack(i), slots);
+    public GodRecipe setGodItem(Item i, GodRecipeSlot... slots) {
+        return setGodItem(new ItemStack(i), slots);
     }
 
-    public GodRecipe setInnerGodItem(Block b, GodRecipeSlot... slots) {
-        return setInnerGodItem(new ItemStack(b), slots);
+    public GodRecipe setGodItem(Block b, GodRecipeSlot... slots) {
+        return setGodItem(new ItemStack(b), slots);
     }
 
-    public GodRecipe setInnerGodItem(ItemStack stack, GodRecipeSlot... slots) {
-        return setInnerGodItem(new ItemHandle(stack), slots);
+    public GodRecipe setGodItem(ItemStack stack, GodRecipeSlot... slots) {
+        return setGodItem(new ItemHandle(stack), slots);
     }
 
-    public GodRecipe setInnerGodItem(String oreDict, GodRecipeSlot... slots) {
-        return setInnerGodItem(new ItemHandle(oreDict), slots);
+    public GodRecipe setGodItem(String oreDict, GodRecipeSlot... slots) {
+        return setGodItem(new ItemHandle(oreDict), slots);
     }
 
-    public GodRecipe setInnerGodItem(FluidStack fluid, GodRecipeSlot... slots) {
-        return setInnerGodItem(new ItemHandle(fluid), slots);
+    public GodRecipe setGodItem(FluidStack fluid, GodRecipeSlot... slots) {
+        return setGodItem(new ItemHandle(fluid), slots);
     }
 
-    public GodRecipe setInnerGodItem(Fluid fluid, int mbAmount, GodRecipeSlot... slots) {
-        return setInnerGodItem(new FluidStack(fluid, mbAmount), slots);
+    public GodRecipe setGodItem(Fluid fluid, int mbAmount, GodRecipeSlot... slots) {
+        return setGodItem(new FluidStack(fluid, mbAmount), slots);
     }
 
-    public GodRecipe setInnerGodItem(Fluid fluid, GodRecipeSlot... slots) {
-        return setInnerGodItem(fluid, 1000, slots);
+    public GodRecipe setGodItem(Fluid fluid, GodRecipeSlot... slots) {
+        return setGodItem(fluid, 1000, slots);
     }
 
-    public GodRecipe setInnerGodItem(ItemHandle handle, GodRecipeSlot... slots) {
+    public GodRecipe setGodItem(ItemHandle handle, GodRecipeSlot... slots) {
         for (GodRecipeSlot slot : slots) {
             matchGodStacks.put(slot, handle);
         }
         return this;
     }
-
-//    public GodRecipe addOuterGodItem(Item i) {
-//        return addOuterGodItem(new ItemStack(i));
-//    }
-//
-//    public GodRecipe addOuterGodItem(Block b) {
-//        return addOuterGodItem(new ItemStack(b));
-//    }
-
-//    public GodRecipe addOuterGodItem(ItemStack stack) {
-//        return addOuterGodItem(new ItemHandle(stack));
-//    }
-//
-//    public GodRecipe addOuterGodItem(String oreDict) {
-//        return addOuterGodItem(new ItemHandle(oreDict));
-//    }
-//
-//    public GodRecipe addOuterGodItem(FluidStack fluid) {
-//        return addOuterGodItem(new ItemHandle(fluid));
-//    }
-
-//    public GodRecipe addOuterGodItem(Fluid fluid, int mbAmount) {
-//        return addOuterGodItem(new FluidStack(fluid, mbAmount));
-//    }
-
-//    public GodRecipe addOuterGodItem(Fluid fluid) {
-//        return addOuterGodItem(fluid, 1000);
-//    }
-
-//    public GodRecipe addOuterGodItem(ItemHandle handle) {
-//        additionallyRequiredStacks.add(handle);
-//        return this;
-//    }
-
+    
     @Nonnull
     public List<NonNullList<ItemStack>> getGodItems() {
         List<NonNullList<ItemStack>> out = Lists.newArrayList();
@@ -364,7 +361,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     }
 
     @Nonnull
-    public List<ItemStack> getInnerGodItems(GodRecipeSlot slot) {
+    public List<ItemStack> getGodItems(GodRecipeSlot slot) {
         ItemHandle handle = matchGodStacks.get(slot);
         if(handle != null) {
             return handle.getApplicableItems();
@@ -373,8 +370,13 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     }
 
     @Nullable
-    public ItemHandle getInnerGodItemHandle(GodRecipeSlot slot) {
+    public ItemHandle getGodItemHandle(GodRecipeSlot slot) {
         return matchGodStacks.get(slot);
+    }
+
+    public GodRecipe setGodLiquidStarlight(int liquidStarlight) {
+        this.liquidStarlightRequired = liquidStarlight;
+        return this;
     }
 
     public void setRequiredConstellation(IConstellation requiredConstellation) {
@@ -388,7 +390,8 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
     @Override
     public int craftingTickTime() {
-        return 700;
+        super.craftingTickTime();
+        return 1000;
     }
 
     @Override
@@ -422,7 +425,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             }
         }
 
-        for (TraitRecipe.TraitRecipeSlot slot : TraitRecipe.TraitRecipeSlot.values()) {
+        for (TraitRecipeSlot slot : TraitRecipeSlot.values()) {
             int slotId = slot.getSlotId();
             if(mayDecrement(ta, slot)) {
                 ItemUtils.decrStackInInventory(inventory, slotId);
@@ -441,8 +444,6 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
                 handleItemConsumption(ta, slot);
             }
         }
-
-        this.consumeOuterInputs(ta, craftingTask);
     }
 
     @Override
@@ -456,35 +457,94 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             return false;
         }
 
-        int required = additionallyRequiredStacks.size();
-        if (required <= 0) {
-            return true; //No additional items, huh.
-        }
 
-        int part = totalCraftingTime / 2;
-        int offset = totalCraftingTime / 10;
-        int cttPart = part / required;
-        for (int i = 0; i < required; i++) {
-            int timing = (i * cttPart) + offset;
-            if(activeCraftingTick >= timing) {
-                CraftingFocusStack found = null;
-                for (CraftingFocusStack stack : stacks) {
-                    if(stack.stackIndex == i) {
-                        found = stack;
-                        break;
+        int required = additionallyRequiredStacks.size();
+        int liquidStarlightRequired = this.liquidStarlightRequired;
+        boolean noAdditionalItems = required <= 0; //No additional items, huh.
+        boolean noLiquidStarlightNeeded = liquidStarlightRequired <= 0; //No additional items, huh.
+
+        boolean finishOuterItem = true;
+
+        if (!noAdditionalItems) {
+            int part = 350;
+            int offset = 70;
+            int cttPart = part / required;
+            for (int i = 0; i < required; i++) {
+                int timing = (i * cttPart) + offset;
+                if (activeCraftingTick >= timing) {
+                    CraftingFocusStack found = null;
+                    for (CraftingFocusStack stack : stacks) {
+                        if (stack.stackIndex == i) {
+                            found = stack;
+                            break;
+                        }
                     }
-                }
-                if(found == null) {
-                    BlockPos next = findUnusedRelay(altar, stacks);
-                    if(next != null) {
-                        CraftingFocusStack stack = new CraftingFocusStack(i, next);
-                        stacks.add(stack);
-                        storeCurrentStacks(craftingData, stacks);
+                    if (found == null) {
+                        BlockPos next = findUnusedRelay(altar, stacks);
+                        if (next != null) {
+                            CraftingFocusStack stack = new CraftingFocusStack(i, next);
+                            stacks.add(stack);
+                            storeCurrentStacks(craftingData, stacks);
+                        }
+                        finishOuterItem = false;
+                        return false;
                     }
-                    return false;
                 }
             }
         }
+        
+        if (!noLiquidStarlightNeeded) {
+            int allTime = 300;
+            int totalSteps = 30;
+            int begin = (required * 350 / required) + 170;
+            int cttPart = allTime / totalSteps;
+//            int totalTime = ((liquidStarlightRequired - altar.getFluidAmount()) / mbNeeded);
+//            for (int i = 30 - totalTime ; i < totalTime; i++) {
+//                int timing = (i * cttPart) + begin;
+////                if (activeCraftingTick >= timing) {
+////                    System.out.println("activeCraftingTick--" + activeCraftingTick);
+////                    System.out.println("timing--" + timing);
+////                    System.out.println("i--" + i);
+////                }
+//                if (activeCraftingTick == timing) {
+//                    if (!findChaliceAndFluidTransfer(altar, mbNeeded)) {
+//                        return false;
+//                    }
+//                }
+//            }
+            int perStep = (int) Math.floor(liquidStarlightRequired / (double) totalSteps);
+            int totalTime = ((liquidStarlightRequired - altar.getFluidAmount()) / perStep);
+
+            for (int i = 30 - totalTime; i < totalSteps; i++) {
+                int timing = (i * cttPart) + begin;
+                if (activeCraftingTick == timing) {
+                    if (!findChaliceAndFluidTransfer(altar, perStep)) {
+                        return false;
+                    }
+                }
+            }
+
+            if (altar.getFluidAmount() < this.liquidStarlightRequired) {
+                int timing = (30 * cttPart) + begin;
+                if (activeCraftingTick == timing) {
+                    int lastNeeded = this.liquidStarlightRequired - altar.getFluidAmount();
+                    return findChaliceAndFluidTransfer(altar, lastNeeded);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private boolean findChaliceAndFluidTransfer(TileGodAltar altar, int needed) {
+        TileChalice chalice = findChalice(altar, needed);
+
+        if (chalice == null) return false;
+
+        FluidStack fluidStack = new FluidStack(BlocksAS.fluidLiquidStarlight, needed);
+        LiquidStarlightChaliceHandler.doFluidTransfer(chalice, altar, fluidStack.copy());
+        chalice.getTank().drain(needed, true);
+        System.out.println("needed--" + needed);
         return true;
     }
 
@@ -500,33 +560,26 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         for (AttunementAltarSlot slot : AttunementAltarSlot.values()) {
             ItemHandle expected = additionalSlots.get(slot);
             if(expected != null) {
-                ItemStack altarItem = invHandler.getStackInSlot(slot.slotId);
+                ItemStack altarItem = invHandler.getStackInSlot(slot.getSlotId());
                 if(!expected.matchCrafting(altarItem)) {
                     return false;
                 }
             } else {
-                if(!invHandler.getStackInSlot(slot.slotId).isEmpty()) return false;
+                if(!invHandler.getStackInSlot(slot.getSlotId()).isEmpty()) return false;
             }
         }
 
         for (ConstellationAtlarSlot slot : ConstellationAtlarSlot.values()) {
             ItemHandle expected = matchStacks.get(slot);
             if(expected != null) {
-                ItemStack altarItem = invHandler.getStackInSlot(slot.slotId);
+                ItemStack altarItem = invHandler.getStackInSlot(slot.getSlotId());
                 if(!expected.matchCrafting(altarItem)) {
                     return false;
                 }
             } else {
-                if(!invHandler.getStackInSlot(slot.slotId).isEmpty()) return false;
+                if(!invHandler.getStackInSlot(slot.getSlotId()).isEmpty()) return false;
             }
         }
-
-//        IConstellation req = getRequiredConstellation();
-//        if(req != null) {
-//            IConstellation focus = altar.getFocusedConstellation();
-//            if(focus == null) return false;
-//            if(!req.equals(focus)) return false;
-//        }
         for (TraitRecipeSlot slot : TraitRecipeSlot.values()) {
             ItemHandle expected = matchTraitStacks.get(slot);
             if(expected != null) {
@@ -560,7 +613,6 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     }
 
     public void consumeOuterInputs(TileGodAltar altar, AddedActiveCraftingTask craftingTask) {
-        System.out.println("additionallyRequiredStacks.size()--" + additionallyRequiredStacks.size());
         List<CraftingFocusStack> stacks = collectCurrentStacks(craftingTask.getCraftingData());
         for (CraftingFocusStack stack : stacks) {
             if(stack.stackIndex < 0 || stack.stackIndex >= additionallyRequiredStacks.size()) continue; //Duh
@@ -748,6 +800,8 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
                     renderTranslucentItem(element, x + stack.offset.getX(), y + stack.offset.getY(), z + stack.offset.getZ(), partialTicks);
                 }
             }
+
+            renderRisingStarlightItemModel(x, y, z, partialTicks, act.getTicksCrafting(), act.getTotalCraftingTime(), altar);
         }
     }
 
@@ -786,6 +840,367 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         GlStateManager.popMatrix();
     }
 
+    @SideOnly(Side.CLIENT)
+    private void renderRisingStarlightItemModel(double x, double y, double z, float partialTicks, int progressTicks, int totalTicks, TileGodAltar altar) {
+        if (totalTicks <= 0) {
+            return;
+        }
+
+        float progress = (progressTicks + partialTicks) / (float) totalTicks;
+        progress = MathHelper.clamp(progress, 0.0F, 1.0F);
+        if (progress <= 0.0F) {
+            return;
+        }
+
+        ItemStack stack = getOutputForRender();
+        if (stack.isEmpty()) {
+            return;
+        }
+
+        TextureAtlasSprite sprite = Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(starlightLiquidStill.toString());
+        if (sprite == null) {
+            return;
+        }
+        int tintColor = getStarlightTintColor();
+        IBakedModel bakedModel = Minecraft.getMinecraft().getRenderItem().getItemModelWithOverrides(stack, null, null);
+        if (bakedModel == null) {
+            return;
+        }
+        boolean builtIn = bakedModel.isBuiltInRenderer();
+        IBlockState modelState = null;
+        boolean hasQuads = hasAnyQuads(bakedModel);
+        if (stack.getItem() instanceof ItemBlock) {
+            ItemBlock ib = (ItemBlock) stack.getItem();
+            IBlockState state = ib.getBlock().getStateFromMeta(stack.getMetadata());
+            IBakedModel blockModel = Minecraft.getMinecraft().getBlockRendererDispatcher()
+                    .getBlockModelShapes().getModelForState(state);
+            if (blockModel != null && hasAnyQuads(blockModel, state)) {
+                bakedModel = blockModel;
+                builtIn = false;
+                modelState = state;
+                hasQuads = true;
+            }
+        }
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(x + 0.5, y + 1.2, z + 0.5);
+
+        float ageRotate = ((ClientScheduler.getClientTick() + partialTicks) / 20.0F) * (180F / (float)Math.PI);
+        GlStateManager.rotate(ageRotate, 0.0F, 1.0F, 0.0F);
+
+        GlStateManager.disableLighting();
+        GlStateManager.enableBlend();
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableCull();
+        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.001F);
+        Blending.CONSTANT_ALPHA.applyStateManager();
+
+        float scale = 0.7F;
+        GlStateManager.scale(scale, scale, scale);
+        GlStateManager.translate(-0.5F, 0.0F, -0.5F);
+
+        Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
+
+        float clipHeight = (float) altar.getFluidAmount() / this.liquidStarlightRequired;
+
+        if (clipHeight <= 0.0F) {
+            GL11.glDisable(GL11.GL_CLIP_PLANE0);
+            GlStateManager.enableCull();
+            GlStateManager.disableBlend();
+            GlStateManager.enableLighting();
+            GlStateManager.alphaFunc(GL11.GL_GREATER, 0.1F);
+            Blending.DEFAULT.applyStateManager();
+            GlStateManager.popMatrix();
+            return;
+        }
+
+        if (clipHeight > 0) {
+
+            enableClipPlane(clipHeight);
+            boolean wantStencil = true;
+            if (stack.getItem() instanceof ItemBlock) {
+                Block block = ((ItemBlock) stack.getItem()).getBlock();
+                wantStencil = block.getRenderLayer() == BlockRenderLayer.TRANSLUCENT;
+            }
+            boolean useStencil = wantStencil && setupStencilMask(bakedModel, stack, builtIn, modelState);
+            Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
+            GlStateManager.depthMask(false);
+            GlStateManager.enablePolygonOffset();
+            GlStateManager.doPolygonOffset(-1.0F, -1.0F);
+            if (builtIn && !hasQuads) {
+                renderStarlightCube(sprite, tintColor);
+            } else {
+                renderRetexturedModel(bakedModel, sprite, tintColor, modelState);
+            }
+            GlStateManager.doPolygonOffset(0.0F, 0.0F);
+            GlStateManager.disablePolygonOffset();
+            GlStateManager.depthMask(true);
+            if (useStencil) {
+                GL11.glDisable(GL11.GL_STENCIL_TEST);
+                GL11.glStencilMask(0xFF);
+                GlStateManager.alphaFunc(GL11.GL_GREATER, 0.001F);
+            }
+        }
+
+        GL11.glDisable(GL11.GL_CLIP_PLANE0);
+
+        GlStateManager.enableCull();
+        GlStateManager.disableBlend();
+        GlStateManager.enableLighting();
+        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.1F);
+        Blending.DEFAULT.applyStateManager();
+        GlStateManager.popMatrix();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void renderRetexturedModel(IBakedModel model, TextureAtlasSprite sprite, int color, @Nullable IBlockState state) {
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        buffer.begin(GL11.GL_QUADS, getModelVertexFormat(model, state));
+
+        long rand = 0L;
+        boolean preferFaces = state != null;
+        if (preferFaces) {
+            boolean rendered = false;
+            for (EnumFacing face : EnumFacing.values()) {
+                List<BakedQuad> faceQuads = model.getQuads(state, face, rand);
+                if (!faceQuads.isEmpty()) {
+                    renderQuadList(buffer, faceQuads, sprite, color);
+                    rendered = true;
+                }
+            }
+            if (!rendered) {
+                List<BakedQuad> general = model.getQuads(state, null, rand);
+                if (!general.isEmpty()) {
+                    renderQuadList(buffer, general, sprite, color);
+                }
+            }
+        } else {
+            List<BakedQuad> general = model.getQuads(state, null, rand);
+            if (!general.isEmpty()) {
+                renderQuadList(buffer, general, sprite, color);
+            } else {
+                for (EnumFacing face : EnumFacing.values()) {
+                    renderQuadList(buffer, model.getQuads(state, face, rand), sprite, color);
+                }
+            }
+        }
+
+        tessellator.draw();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private boolean hasAnyQuads(IBakedModel model) {
+        return hasAnyQuads(model, null);
+    }
+
+    @SideOnly(Side.CLIENT)
+    private boolean hasAnyQuads(IBakedModel model, @Nullable IBlockState state) {
+        long rand = 0L;
+        if (!model.getQuads(state, null, rand).isEmpty()) {
+            return true;
+        }
+        for (EnumFacing face : EnumFacing.values()) {
+            if (!model.getQuads(state, face, rand).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private VertexFormat getModelVertexFormat(IBakedModel model, @Nullable IBlockState state) {
+        long rand = 0L;
+        List<BakedQuad> general = model.getQuads(state, null, rand);
+        if (!general.isEmpty()) {
+            return general.get(0).getFormat();
+        }
+        for (EnumFacing face : EnumFacing.values()) {
+            List<BakedQuad> quads = model.getQuads(state, face, rand);
+            if (!quads.isEmpty()) {
+                return quads.get(0).getFormat();
+            }
+        }
+        return DefaultVertexFormats.ITEM;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void renderStarlightCube(TextureAtlasSprite sprite, int color) {
+        int a = (color >> 24) & 0xFF;
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
+
+        float uMin = sprite.getMinU();
+        float uMax = sprite.getMaxU();
+        float vMin = sprite.getMinV();
+        float vMax = sprite.getMaxV();
+
+        float min = 0.0F;
+        float max = 1.0F;
+
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR_NORMAL);
+
+        // Front (Z+)
+        putVertex(buffer, min, min, max, uMin, vMin, r, g, b, a, 0.0F, 0.0F, 1.0F);
+        putVertex(buffer, max, min, max, uMax, vMin, r, g, b, a, 0.0F, 0.0F, 1.0F);
+        putVertex(buffer, max, max, max, uMax, vMax, r, g, b, a, 0.0F, 0.0F, 1.0F);
+        putVertex(buffer, min, max, max, uMin, vMax, r, g, b, a, 0.0F, 0.0F, 1.0F);
+
+        putVertex(buffer, max, min, min, uMin, vMin, r, g, b, a, 0.0F, 0.0F, -1.0F);
+        putVertex(buffer, min, min, min, uMax, vMin, r, g, b, a, 0.0F, 0.0F, -1.0F);
+        putVertex(buffer, min, max, min, uMax, vMax, r, g, b, a, 0.0F, 0.0F, -1.0F);
+        putVertex(buffer, max, max, min, uMin, vMax, r, g, b, a, 0.0F, 0.0F, -1.0F);
+
+        putVertex(buffer, min, min, min, uMin, vMin, r, g, b, a, -1.0F, 0.0F, 0.0F);
+        putVertex(buffer, min, min, max, uMax, vMin, r, g, b, a, -1.0F, 0.0F, 0.0F);
+        putVertex(buffer, min, max, max, uMax, vMax, r, g, b, a, -1.0F, 0.0F, 0.0F);
+        putVertex(buffer, min, max, min, uMin, vMax, r, g, b, a, -1.0F, 0.0F, 0.0F);
+
+        putVertex(buffer, max, min, max, uMin, vMin, r, g, b, a, 1.0F, 0.0F, 0.0F);
+        putVertex(buffer, max, min, min, uMax, vMin, r, g, b, a, 1.0F, 0.0F, 0.0F);
+        putVertex(buffer, max, max, min, uMax, vMax, r, g, b, a, 1.0F, 0.0F, 0.0F);
+        putVertex(buffer, max, max, max, uMin, vMax, r, g, b, a, 1.0F, 0.0F, 0.0F);
+
+        putVertex(buffer, min, max, min, uMin, vMin, r, g, b, a, 0.0F, 1.0F, 0.0F);
+        putVertex(buffer, min, max, max, uMin, vMax, r, g, b, a, 0.0F, 1.0F, 0.0F);
+        putVertex(buffer, max, max, max, uMax, vMax, r, g, b, a, 0.0F, 1.0F, 0.0F);
+        putVertex(buffer, max, max, min, uMax, vMin, r, g, b, a, 0.0F, 1.0F, 0.0F);
+
+        putVertex(buffer, min, min, max, uMin, vMax, r, g, b, a, 0.0F, -1.0F, 0.0F);
+        putVertex(buffer, min, min, min, uMin, vMin, r, g, b, a, 0.0F, -1.0F, 0.0F);
+        putVertex(buffer, max, min, min, uMax, vMin, r, g, b, a, 0.0F, -1.0F, 0.0F);
+        putVertex(buffer, max, min, max, uMax, vMax, r, g, b, a, 0.0F, -1.0F, 0.0F);
+
+        tessellator.draw();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void putVertex(BufferBuilder buffer, float x, float y, float z, float u, float v,
+                           int r, int g, int b, int a, float nx, float ny, float nz) {
+        buffer.pos(x, y, z).tex(u, v).color(r, g, b, a).normal(nx, ny, nz).endVertex();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private TextureAtlasSprite getStarlightSprite() {
+        return Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(starlightLiquidStill.toString());
+    }
+
+    @SideOnly(Side.CLIENT)
+    private int getStarlightTintColor() {
+        Fluid fluid = FluidRegistry.getFluid("liquid_starlight");
+        if (fluid == null) {
+            fluid = FluidRegistry.getFluid("starlight");
+        }
+        int color = fluid != null ? fluid.getColor() : 0xFFFFFFFF;
+        return (color & 0x00FFFFFF) | 0xB0000000;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private boolean setupStencilMask(IBakedModel model, ItemStack stack, boolean builtIn, @Nullable IBlockState state) {
+        Framebuffer fb = Minecraft.getMinecraft().getFramebuffer();
+        if (fb == null) {
+            return false;
+        }
+        if (!fb.isStencilEnabled() && !fb.enableStencil()) {
+            return false;
+        }
+
+        GL11.glEnable(GL11.GL_STENCIL_TEST);
+        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+        GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+        GL11.glStencilMask(0xFF);
+
+        GlStateManager.colorMask(false, false, false, false);
+        GlStateManager.depthMask(false);
+        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.1F);
+
+        if (builtIn) {
+            Minecraft.getMinecraft().getRenderItem().renderItem(stack, ItemCameraTransforms.TransformType.NONE);
+        } else {
+            renderOriginalModel(model, 0xFFFFFFFF, state);
+        }
+
+        GlStateManager.colorMask(true, true, true, true);
+        GlStateManager.depthMask(true);
+
+        GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+        GL11.glStencilMask(0x00);
+        return true;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void cleanupStencilMask() {
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void renderOriginalModel(IBakedModel model, int color, @Nullable IBlockState state) {
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        buffer.begin(GL11.GL_QUADS, getModelVertexFormat(model, state));
+
+        long rand = 0L;
+        boolean preferFaces = state != null;
+        if (preferFaces) {
+            boolean rendered = false;
+            for (EnumFacing face : EnumFacing.values()) {
+                List<BakedQuad> faceQuads = model.getQuads(state, face, rand);
+                if (!faceQuads.isEmpty()) {
+                    renderQuadListOriginal(buffer, faceQuads, color);
+                    rendered = true;
+                }
+            }
+            if (!rendered) {
+                List<BakedQuad> general = model.getQuads(state, null, rand);
+                if (!general.isEmpty()) {
+                    renderQuadListOriginal(buffer, general, color);
+                }
+            }
+        } else {
+            List<BakedQuad> general = model.getQuads(state, null, rand);
+            if (!general.isEmpty()) {
+                renderQuadListOriginal(buffer, general, color);
+            } else {
+                for (EnumFacing face : EnumFacing.values()) {
+                    renderQuadListOriginal(buffer, model.getQuads(state, face, rand), color);
+                }
+            }
+        }
+
+        tessellator.draw();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void renderQuadList(BufferBuilder buffer, List<BakedQuad> quads, TextureAtlasSprite sprite, int color) {
+        for (BakedQuad quad : quads) {
+            BakedQuad retextured = new BakedQuadRetextured(quad, sprite);
+            LightUtil.renderQuadColor(buffer, retextured, color);
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void renderQuadListOriginal(BufferBuilder buffer, List<BakedQuad> quads, int color) {
+        for (BakedQuad quad : quads) {
+            LightUtil.renderQuadColor(buffer, quad, color);
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void enableClipPlane(float height) {
+        DoubleBuffer clipPlane = BufferUtils.createDoubleBuffer(4);
+        float h = height + 0.001F; // Avoid coplanar clipping flicker on top face
+        clipPlane.put(0, 0.0);
+        clipPlane.put(1, -1.0);
+        clipPlane.put(2, 0.0);
+        clipPlane.put(3, h);
+        GL11.glClipPlane(GL11.GL_CLIP_PLANE0, clipPlane);
+        GL11.glEnable(GL11.GL_CLIP_PLANE0);
+    }
+
     @Nullable
     protected BlockPos findUnusedRelay(TileGodAltar center, List<CraftingFocusStack> found) {
         List<BlockPos> eligableRelayOffsets = Lists.newLinkedList();
@@ -807,6 +1222,34 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             return null;
         }
         return eligableRelayOffsets.get(center.getWorld().rand.nextInt(eligableRelayOffsets.size()));
+    }
+
+    @Nullable
+    protected TileChalice findChalice(TileGodAltar center, int liquidStarlightRequired) {
+        List<TileChalice> chaliceOffsets = Lists.newLinkedList();
+        for (int xx = -15; xx <= 15; xx++) {
+            for (int zz = -15; zz <= 15; zz++) {
+                for (int yy = -5; yy <= 5; yy++) {
+                    if (xx <= 6 && zz <= 6) continue; // 太近了
+
+                    BlockPos offset = new BlockPos(xx, yy, zz);
+                    TileChalice tar = MiscUtils.getTileAt(center.getWorld(), center.getPos().add(offset), TileChalice.class, true);
+                    if (tar != null) {
+                        // 是星能液且数量够一次的抽取量
+                        if (tar.getFluidAmount() >= liquidStarlightRequired &&
+                                tar.getHeldFluid() == BlocksAS.fluidLiquidStarlight) {
+                            MultiblockContainmentChalice m = new MultiblockContainmentChalice();
+                            if (m.matches(center.getWorld(), center.getPos().add(offset)))
+                                chaliceOffsets.add(tar);
+                        }
+                    }
+                }
+            }
+        }
+        if(chaliceOffsets.size() <= 0) {
+            return null;
+        }
+        return chaliceOffsets.get(center.getWorld().rand.nextInt(chaliceOffsets.size()));
     }
 
     protected boolean matchFocusStacks(TileGodAltar altar, List<CraftingFocusStack> stacks) {
@@ -848,6 +1291,9 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         }
         return stacks;
     }
+
+
+
     public static class CraftingFocusStack {
 
         public final Integer stackIndex; //Index of required stack
@@ -860,85 +1306,25 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
     }
 
-    public static enum AttunementAltarSlot {
-
-        UPPER_LEFT(9),
-        UPPER_RIGHT(10),
-        LOWER_LEFT(11),
-        LOWER_RIGHT(12);
-
-        private final int slotId;
-
-        private AttunementAltarSlot(int slotId) {
-            this.slotId = slotId;
-        }
-
-        public int getSlotId() {
-            return slotId;
-        }
-
-    }
-
-    public static enum ConstellationAtlarSlot {
-
-        UP_UP_LEFT(13),
-        UP_UP_RIGHT(14),
-        UP_LEFT_LEFT(15),
-        UP_RIGHT_RIGHT(16),
-
-        DOWN_LEFT_LEFT(17),
-        DOWN_RIGHT_RIGHT(18),
-        DOWN_DOWN_LEFT(19),
-        DOWN_DOWN_RIGHT(20);
-
-        private final int slotId;
-
-        ConstellationAtlarSlot(int slotId) {
-            this.slotId = slotId;
-        }
-
-        public int getSlotId() {
-            return slotId;
-        }
-    }
-
-    public static enum TraitRecipeSlot {
-
-        UPPER_CENTER(21),
-        LEFT_CENTER(22),
-        RIGHT_CENTER(23),
-        LOWER_CENTER(24);
-
-        private final int slotId;
-
-        TraitRecipeSlot(int slotId) {
-            this.slotId = slotId;
-        }
-
-        public int getSlotId() {
-            return slotId;
-        }
-
-    }
-
     public static enum GodRecipeSlot {
+        UPPER_LEFT(26),
+        UPPER_CENTER(27),
+        UPPER_RIGHT(28),
+        LOWER_LEFT(29),
+        LOWER_CENTER(30),
+        LOWER_RIGHT(31),
 
-        SLOT1(26),
-        SLOT2(27),
-        SLOT3(28),
-        SLOT4(29),
-        SLOT5(30),
-        SLOT6(31),
-        SLOT7(32),
-        SLOT8(33),
-        SLOT9(34),
-        SLOT10(35),
-        SLOT11(36),
-        SLOT12(37),
-        SLOT13(38),
-        SLOT14(39),
-        SLOT15(40),
-        SLOT16(41);
+        LEFT_UPPER(32),
+        LEFT_CENTER(33),
+        LEFT_LOWER(34),
+        RIGHT_UPPER(35),
+        RIGHT_CENTER(36),
+        RIGHT_LOWER(37),
+
+        UPPER_LEFT_CORNER(38),
+        UPPER_RIGHT_CORNER(39),
+        LOWER_LEFT_CORNER(40),
+        LOWER_RIGHT_CORNER(41);
 
         private final int slotId;
 
