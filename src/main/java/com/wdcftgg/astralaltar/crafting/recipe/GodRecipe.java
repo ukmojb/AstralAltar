@@ -379,6 +379,10 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         return this;
     }
 
+    public int getLiquidStarlightRequired() {
+        return liquidStarlightRequired;
+    }
+
     public void setRequiredConstellation(IConstellation requiredConstellation) {
         this.requiredConstellation = requiredConstellation;
     }

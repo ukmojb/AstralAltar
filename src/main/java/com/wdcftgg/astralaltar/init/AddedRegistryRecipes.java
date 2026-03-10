@@ -46,7 +46,9 @@ public class AddedRegistryRecipes {
                 ConstellationAtlarSlot.UP_RIGHT_RIGHT);
         test.setInnerTraitItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
                 TraitRecipeSlot.LEFT_CENTER,
-                TraitRecipeSlot.RIGHT_CENTER);
+                TraitRecipeSlot.RIGHT_CENTER,
+                TraitRecipeSlot.LOWER_CENTER,
+                TraitRecipeSlot.UPPER_CENTER);
         test.setInnerTraitItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
                 TraitRecipeSlot.UPPER_CENTER);
         test.setCstItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
@@ -60,6 +62,10 @@ public class AddedRegistryRecipes {
         test.setGodItem(Items.BOOK,
                 GodRecipeSlot.LOWER_RIGHT,
                 GodRecipeSlot.LEFT_LOWER,
+                GodRecipeSlot.LOWER_LEFT_CORNER,
+                GodRecipeSlot.LOWER_RIGHT_CORNER,
+                GodRecipeSlot.UPPER_LEFT_CORNER,
+                GodRecipeSlot.UPPER_RIGHT_CORNER,
                 GodRecipeSlot.RIGHT_UPPER);
         test.setPassiveStarlightRequirement(6500);
         test.setRequiredConstellation(Constellations.vicio);

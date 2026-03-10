@@ -1,6 +1,7 @@
 package com.wdcftgg.astralaltar.init;
 
 import com.wdcftgg.astralaltar.init.multiblock.MultiblockAltarGod;
+import com.wdcftgg.astralaltar.init.multiblock.MultiblockAltarGod2;
 import hellfirepvp.astralsorcery.common.structure.StructureMatcherRegistry;
 import hellfirepvp.astralsorcery.common.structure.StructureRegistry;
 import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
@@ -8,9 +9,11 @@ import hellfirepvp.astralsorcery.common.structure.match.StructureMatcherPatternA
 
 public class RegistryStructures {
     public static PatternBlockArray patternAltarGod;
+    public static PatternBlockArray patternAltarGod2;
 
     public static void init() {
         patternAltarGod = registerPattern(new MultiblockAltarGod());
+        patternAltarGod2 = registerPattern(new MultiblockAltarGod2());
     }
 
     private static <T extends PatternBlockArray> T registerPattern(T pattern) {

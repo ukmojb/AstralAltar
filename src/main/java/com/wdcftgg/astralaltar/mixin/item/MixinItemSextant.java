@@ -1,26 +1,41 @@
 package com.wdcftgg.astralaltar.mixin.item;
 
+import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.cilent.effect.NewEffectHandler;
+import com.wdcftgg.astralaltar.init.RegistryStructures;
 import com.wdcftgg.astralaltar.init.multiblock.NewStructureRegistry;
 import hellfirepvp.astralsorcery.common.item.tool.sextant.ItemSextant;
+import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.List;
+
+import static hellfirepvp.astralsorcery.common.item.tool.sextant.ItemSextant.setAdvanced;
+
 @Mixin(value = ItemSextant.class, remap = false)
-public class MixinItemSextant {
+public abstract class MixinItemSextant {
 
 
     @Inject(method = "onRightClick",
@@ -48,6 +63,27 @@ public class MixinItemSextant {
                 cir.setReturnValue(true);
             }
         }
+
+        if (te instanceof TileGodAltar && astralaltar$isEvolution(stack)) {
+            PatternBlockArray struct = RegistryStructures.patternAltarGod2;
+            if (struct != null) {
+                if (!struct.matches(world, pos)) {
+                    if(!world.isRemote && world instanceof WorldServer &&
+                            entityPlayer.isCreative() && entityPlayer.isSneaking() &&
+                            MiscUtils.isChunkLoaded(world, pos)) {
+                        IBlockState current = world.getBlockState(pos);
+                        struct.placeInWorld(world, pos);
+                        if(!world.getBlockState(pos).equals(current)) {
+                            world.setBlockState(pos, current);
+                        }
+                    }
+                    if(world.isRemote) {
+                        NewEffectHandler.getInstance().requestStructurePreviewFor(struct, pos, te);
+                    }
+                }
+                cir.setReturnValue(true);
+            }
+        }
     }
 
     @Inject(method = "needsSpecialHandling",
@@ -58,6 +94,39 @@ public class MixinItemSextant {
         if(te != null && NewStructureRegistry.hasTileEntity(te)) {
             PatternBlockArray struct = NewStructureRegistry.getPatternBlockArray(te);
             cir.setReturnValue(struct != null);
+        }
+        if (te instanceof TileGodAltar && astralaltar$isEvolution(stack)) {
+            PatternBlockArray struct = RegistryStructures.patternAltarGod2;
+            cir.setReturnValue(struct != null);
+        }
+    }
+
+    @Inject(method = "getSubItems", at = @At(value = "TAIL", target = "Lhellfirepvp/astralsorcery/common/item/tool/sextant/ItemSextant;setAdvanced(Lnet/minecraft/item/ItemStack;)V"))
+    public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> items, CallbackInfo ci) {
+        ItemStack evo = new ItemStack(ItemsAS.sextant);
+        astralaltar$setEvolution(evo);
+        setAdvanced(evo);
+        items.add(evo);
+    }
+
+    @Inject(method = "addInformation", at = @At(value = "HEAD", target = "Lhellfirepvp/astralsorcery/common/item/tool/sextant/ItemSextant;addInformation(Lnet/minecraft/item/ItemStack;Lnet/minecraft/world/World;Ljava/util/List;Lnet/minecraft/client/util/ITooltipFlag;)V"))
+    public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn, CallbackInfo ci) {
+        if (astralaltar$isEvolution(stack)) {
+            tooltip.add(TextFormatting.BLUE + I18n.format("item.itemsextant.evolution"));
+        }
+
+
+    }
+
+    @Unique
+    public boolean astralaltar$isEvolution(ItemStack sextantStack) {
+        return !sextantStack.isEmpty() && sextantStack.getItem() instanceof ItemSextant && NBTHelper.getBoolean(NBTHelper.getPersistentData(sextantStack), "evolution", false);
+    }
+
+    @Unique
+    public void astralaltar$setEvolution(ItemStack sextantStack) {
+        if (!sextantStack.isEmpty() && sextantStack.getItem() instanceof ItemSextant) {
+            NBTHelper.getPersistentData(sextantStack).setBoolean("evolution", true);
         }
     }
 }

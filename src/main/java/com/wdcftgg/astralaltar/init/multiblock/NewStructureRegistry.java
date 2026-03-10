@@ -3,7 +3,9 @@ package com.wdcftgg.astralaltar.init.multiblock;
 import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
 import net.minecraft.tileentity.TileEntity;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class NewStructureRegistry {

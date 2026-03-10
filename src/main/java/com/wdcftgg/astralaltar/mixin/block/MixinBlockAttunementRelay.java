@@ -22,40 +22,53 @@ import java.util.Map;
 public class MixinBlockAttunementRelay {
 
     @Inject(method = "startSearchRelayLinkThreadAt",
-            at = @At(value = "HEAD", target = "Lhellfirepvp/astralsorcery/common/block/BlockAttunementRelay;startSearchRelayLinkThreadAt(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Z)V")
-    )
+            at = @At(value = "HEAD", target = "Lhellfirepvp/astralsorcery/common/block/BlockAttunementRelay;startSearchRelayLinkThreadAt(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Z)V"),
+            cancellable = true)
     private static void startSearchRelayLinkThreadAt(World world, BlockPos pos, boolean recUpdate, CallbackInfo ci) {
         Thread searchThread = new Thread(() -> {
             BlockPos closestAltar = null;
+            BlockPos closestGodAltar = null;
             double dstSqOtherRelay = Double.MAX_VALUE;
             BlockArray relaysAndAltars = BlockDiscoverer.searchForBlocksAround(world, pos, 16,
-                    (world1, pos1, state1) -> state1.getBlock().equals(ModBlocks.godAltar) || state1.getBlock().equals(BlocksAS.attunementRelay));
+                    (world1, pos1, state1) -> (state1.getBlock().equals(ModBlocks.godAltar) || state1.getBlock().equals(BlocksAS.blockAltar)) || state1.getBlock().equals(BlocksAS.attunementRelay));
             for (Map.Entry<BlockPos, BlockArray.BlockInformation> entry : relaysAndAltars.getPattern().entrySet()) {
-                if(entry.getValue().type.equals(ModBlocks.godAltar)) {
-                    if(closestAltar == null || pos.distanceSq(entry.getKey()) < pos.distanceSq(closestAltar)) {
+                if (entry.getValue().type.equals(ModBlocks.godAltar)) {
+                    if (closestGodAltar == null || pos.distanceSq(entry.getKey()) < pos.distanceSq(closestGodAltar)) {
+                        closestGodAltar = entry.getKey();
+                    }
+                } else if (entry.getValue().type.equals(BlocksAS.blockAltar)) {
+                    if (closestAltar == null || pos.distanceSq(entry.getKey()) < pos.distanceSq(closestAltar)) {
                         closestAltar = entry.getKey();
                     }
                 } else {
                     double dstSqOther = entry.getKey().distanceSq(pos);
-                    if(dstSqOther < dstSqOtherRelay) {
+                    if (dstSqOther < dstSqOtherRelay) {
                         dstSqOtherRelay = dstSqOther;
                     }
                 }
             }
 
-            BlockPos finalClosestAltar = closestAltar;
+            BlockPos linkedAltar = closestAltar;
+            if (closestGodAltar != null && (linkedAltar == null || pos.distanceSq(closestGodAltar) < pos.distanceSq(linkedAltar))) {
+                linkedAltar = closestGodAltar;
+            }
+
+            BlockPos finalLinkedAltar = linkedAltar;
             double finalDstSqOtherRelay = dstSqOtherRelay;
             AstralSorcery.proxy.scheduleDelayed(() -> {
                 TileAttunementRelay tar = MiscUtils.getTileAt(world, pos, TileAttunementRelay.class, true);
-                if(tar != null) {
-                    tar.updatePositionData(finalClosestAltar, finalDstSqOtherRelay);
+                if (tar != null) {
+                    tar.updatePositionData(finalLinkedAltar, finalDstSqOtherRelay);
                 }
-                if(recUpdate) {
+                if (recUpdate) {
                     BlockGodAltar.startSearchForRelayUpdate(world, pos);
                 }
             });
         });
         searchThread.setName("[AstralAltar] AttRelay PositionFinder at " + pos.toString());
         searchThread.start();
+
+        ci.cancel();
     }
+
 }

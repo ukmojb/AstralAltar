@@ -26,6 +26,13 @@ public class AddedAltarRecipeRegistry {
 
     private static Map<TileGodAltar.AltarLevel, List<AddedAbstractAltarRecipe>> localFallbackCache = new HashMap<>();
 
+    static {
+        for (TileGodAltar.AltarLevel level : TileGodAltar.AltarLevel.values()) {
+            mtRecipes.put(level, new LinkedList<>());
+            recipes.put(level, new LinkedList<>());
+        }
+    }
+
     //NEVER call this. this should only get called once at post init to compile all recipes for fast access.
     //After this is called, changes to recipe registry might break stuff.
     public static void compileRecipes() {
@@ -293,11 +300,5 @@ public class AddedAltarRecipeRegistry {
         }*/
     }
 
-    static {
-        for (TileGodAltar.AltarLevel al : TileGodAltar.AltarLevel.values()) {
-            recipes.put(al, new LinkedList<>());
-            mtRecipes.put(al, new LinkedList<>());
-        }
-    }
 
 }

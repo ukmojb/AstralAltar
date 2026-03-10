@@ -27,6 +27,7 @@ import hellfirepvp.astralsorcery.client.util.resource.BindableResource;
 import hellfirepvp.astralsorcery.client.util.resource.SpriteSheetResource;
 import hellfirepvp.astralsorcery.common.data.config.Config;
 import hellfirepvp.astralsorcery.common.tile.IStructureAreaOfInfluence;
+import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
 import hellfirepvp.astralsorcery.common.util.Counter;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.block.state.IBlockState;
@@ -85,6 +86,14 @@ public final class NewEffectHandler {
         if(!(tile instanceof TileEntity)) return;
         if(structurePreview == null || !structurePreview.isOriginatingFrom(tile)) {
             structurePreview = new NewStructureMatchPreview(tile);
+        }
+        structurePreview.resetTimeout();
+    }
+
+    public void requestStructurePreviewFor(PatternBlockArray pattern, BlockPos origin, @Nullable TileEntity sourceTile) {
+        if (pattern == null || origin == null) return;
+        if(structurePreview == null || !structurePreview.isOriginatingFrom(sourceTile, pattern, origin)) {
+            structurePreview = new NewStructureMatchPreview(sourceTile, pattern, origin);
         }
         structurePreview.resetTimeout();
     }

@@ -28,19 +28,19 @@ public class RegistryHandler {
 	@SubscribeEvent
 	public static void onItemRegister(RegistryEvent.Register<Item> event)
 	{
-
-
-		for (Item item : ModItems.ITEMS.toArray(new Item[0])){
-			item.setTranslationKey(MODID + "." + item.getTranslationKey().replace("item.", ""));
-		}
+//
+//		for (Item item : ModItems.ITEMS.toArray(new Item[0])){
+//			item.setTranslationKey(MODID + "." + item.getTranslationKey().replace("item.", ""));
+//		}
+//
 		event.getRegistry().registerAll(ModItems.ITEMS.toArray(new Item[0]));
 	}
 	
 	@SubscribeEvent
 	public static void onBlockRegister(RegistryEvent.Register<Block> event) {
-		for (Block block : ModBlocks.BLOCKS.toArray(new Block[0])){
-			block.setTranslationKey(MODID + "." + block.getTranslationKey().replace("tile.", ""));
-		}
+//		for (Block block : ModBlocks.BLOCKS.toArray(new Block[0])){
+//			block.setTranslationKey(MODID + "." + block.getTranslationKey().replace("tile.", ""));
+//		}
 		event.getRegistry().registerAll(ModBlocks.BLOCKS.toArray(new Block[0]));
 	}
 

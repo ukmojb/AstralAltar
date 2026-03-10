@@ -64,11 +64,17 @@ import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.CapabilityItemHandler;
+import scala.actors.migration.pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class TileGodAltar extends TileReceiverBaseInventory implements IWandInteract, IMultiblockDependantTile, ILiquidStarlightPowered {
 
@@ -79,6 +85,8 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     private TileGodAltar.AltarLevel level;
     private ChangeSubscriber<StructureMatcherPatternArray> structureMatch;
     private boolean multiblockMatches;
+    @Nullable
+    private PatternBlockArray activeStructurePattern;
     private ItemStack focusItem;
     private boolean doesSeeSky;
     private int starlightStored;
@@ -91,6 +99,7 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         this.inventorySize = 42;
         this.structureMatch = null;
         this.multiblockMatches = false;
+        this.activeStructurePattern = null;
         this.focusItem = ItemStack.EMPTY;
         this.doesSeeSky = false;
         this.starlightStored = 0;
@@ -209,16 +218,6 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
 
     }
 
-    @Override
-    @SideOnly(Side.CLIENT)
-    public AxisAlignedBB getRenderBoundingBox() {
-        AxisAlignedBB box = super.getRenderBoundingBox().expand(0.0, 10.0, 0.0);
-        if (this.level != null) {
-            box = box.grow(3.0, 0.0, 3.0);
-        }
-
-        return box;
-    }
 
     @SideOnly(Side.CLIENT)
     private void doCraftEffects() {
@@ -226,12 +225,18 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     }
 
     private void matchStructure() {
-        PatternBlockArray structure = this.getRequiredStructure();
-        if (structure != null && this.structureMatch == null) {
+        PatternBlockArray structure = this.findMatchingStructurePattern();
+        if (structure == null) {
+            structure = this.getGodAltarLevel().getPattern();
+        }
+        if (structure != this.activeStructurePattern) {
+            this.activeStructurePattern = structure;
+            this.structureMatch = structure == null ? null : PatternMatchHelper.getOrCreateMatcher(this.getWorld(), this.getPos(), structure);
+        } else if (structure != null && this.structureMatch == null) {
             this.structureMatch = PatternMatchHelper.getOrCreateMatcher(this.getWorld(), this.getPos(), structure);
         }
 
-        boolean matches = structure == null || this.structureMatch.matches(this.getWorld());
+        boolean matches = structure == null || this.structureMatch != null && this.structureMatch.matches(this.getWorld());
         if (matches != this.multiblockMatches) {
             LogCategory.STRUCTURE_MATCH.info(() -> {
                 return "Structure match updated: " + this.getClass().getName() + " at " + this.getPos() + " (" + this.multiblockMatches + " -> " + matches + ")";
@@ -388,10 +393,15 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         return this.multiblockMatches;
     }
 
+    public boolean isPatternAltarGod2Active() {
+        return this.findMatchingStructurePattern() == RegistryStructures.patternAltarGod2;
+    }
+
     @Override
     @Nullable
     public PatternBlockArray getRequiredStructure() {
-        return RegistryStructures.patternAltarGod;
+        PatternBlockArray activePattern = this.findMatchingStructurePattern();
+        return activePattern != null ? activePattern : this.getGodAltarLevel().getPattern();
     }
 
     @Override
@@ -451,9 +461,35 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     public TileGodAltar.AltarLevel matchDownNewMultiblocks(TileGodAltar.AltarLevel levelDownTo) {
         for(int i = this.getGodAltarLevel().ordinal(); i >= levelDownTo.ordinal(); --i) {
             TileGodAltar.AltarLevel al = TileGodAltar.AltarLevel.values()[i];
-            PatternBlockArray pattern = al.getPattern();
-            if (pattern == null || pattern.matches(this.getWorld(), this.getPos())) {
-                return al;
+            if (al.isSingle()) {
+                PatternBlockArray pattern = al.getPattern();
+                if (pattern == null || pattern.matches(this.getWorld(), this.getPos())) {
+                    return al;
+                }
+            } else {
+                for (PatternBlockArray pattern : al.getPatterns()) {
+                    if (pattern.matches(this.getWorld(), this.getPos())) {
+                        return al;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private PatternBlockArray findMatchingStructurePattern() {
+
+        TileGodAltar.AltarLevel altarLevel = this.getGodAltarLevel();
+        if (altarLevel.isSingle()) {
+            PatternBlockArray pattern = altarLevel.getPattern();
+            return pattern != null && pattern.matches(this.getWorld(), this.getPos()) ? pattern : null;
+        }
+
+        for (PatternBlockArray pattern : altarLevel.getPatterns()) {
+            if (pattern.matches(this.getWorld(), this.getPos())) {
+                return pattern;
             }
         }
 
@@ -622,8 +658,8 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
         public AltarReceiverProvider() {
         }
 
-        public TileAltar.TransmissionReceiverAltar provideEmptyNode() {
-            return new TileAltar.TransmissionReceiverAltar((BlockPos)null);
+        public ITransmissionReceiver provideEmptyNode() {
+            return new TileGodAltar.TransmissionReceiverAltar(null);
         }
 
         public String getIdentifier() {
@@ -638,7 +674,7 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
 
         public void onStarlightReceive(World world, boolean isChunkLoaded, IWeakConstellation type, double amount) {
             if (isChunkLoaded) {
-                TileAltar ta = (TileAltar)MiscUtils.getTileAt(world, this.getLocationPos(), TileAltar.class, false);
+                TileGodAltar ta = MiscUtils.getTileAt(world, this.getLocationPos(), TileGodAltar.class, false);
                 if (ta != null) {
                     ta.receiveStarlight(type, amount);
                 }
@@ -652,34 +688,27 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     }
 
     public static enum AltarLevel  {
-        DISCOVERY(9, () -> {
-            return null;
-        }),
-        ATTUNEMENT(13, () -> {
-            return MultiBlockArrays.patternAltarAttunement;
-        }),
-        CONSTELLATION_CRAFT(21, () -> {
-            return MultiBlockArrays.patternAltarConstellation;
-        }),
-        TRAIT_CRAFT(25, () -> {
-            return MultiBlockArrays.patternAltarTrait;
-        }),
-        GOD_CRAFT(42, () -> {
-//        GOD_CRAFT(41, () -> {
-            return RegistryStructures.patternAltarGod;
-        }),
-        BRILLIANCE(25, () -> {
-            return null;
-        });
+        DISCOVERY(9, () -> null),
+        ATTUNEMENT(13, () -> MultiBlockArrays.patternAltarAttunement),
+        CONSTELLATION_CRAFT(21, () -> MultiBlockArrays.patternAltarConstellation),
+        TRAIT_CRAFT(25, () -> MultiBlockArrays.patternAltarTrait),
+        GOD_CRAFT(42, () -> RegistryStructures.patternAltarGod, () -> RegistryStructures.patternAltarGod2),
+        BRILLIANCE(25, () -> null);
 
         private final int maxStarlightStorage;
         private final int accessibleInventorySize;
-        private final Provider<PatternBlockArray> patternProvider;
+        private final List<PatternProvider> patternProviders;
 
-        private AltarLevel(int invSize, Provider patternProvider) {
-            this.patternProvider = patternProvider;
+        private AltarLevel(int invSize, PatternProvider... patternProvider) {
+            this.patternProviders = Arrays.asList(patternProvider);
             this.accessibleInventorySize = invSize;
-            this.maxStarlightStorage = (int)(1000.0 * Math.pow(2.0, (double)this.ordinal()));
+            this.maxStarlightStorage = (int)(1000.0 * Math.pow(2.0, this.ordinal()));
+        }
+
+        @FunctionalInterface
+        private interface PatternProvider {
+            @Nullable
+            PatternBlockArray get();
         }
 
         public BlockAltar.AltarType getCorrespondingAltarType() {
@@ -688,7 +717,18 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
 
         @Nullable
         public PatternBlockArray getPattern() {
-            return (PatternBlockArray)this.patternProvider.provide();
+            return this.patternProviders.get(0).get();
+        }
+
+        public List<PatternBlockArray> getPatterns() {
+            return this.patternProviders.stream()
+                    .map(PatternProvider::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        }
+
+        public boolean isSingle() {
+            return this.patternProviders.size() == 1;
         }
 
         public int getStarlightMaxStorage() {
@@ -716,10 +756,23 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     }
 
 
-    @SideOnly(Side.CLIENT)
     @Override
+    @SideOnly(Side.CLIENT)
+    public AxisAlignedBB getRenderBoundingBox() {
+        AxisAlignedBB box = super.getRenderBoundingBox().expand(0.0, 20.0, 0.0);
+        if (this.level != null) {
+            box = box.grow(5.0, 0.0, 5.0);
+        }
+
+        return box;
+    }
+
+
+    @Override
+    @SideOnly(Side.CLIENT)
     public double getMaxRenderDistanceSquared ()
     {
         return 65536.0D;
     }
+
 }
