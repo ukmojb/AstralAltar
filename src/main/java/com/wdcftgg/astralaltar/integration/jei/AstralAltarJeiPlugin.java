@@ -6,11 +6,17 @@ import com.wdcftgg.astralaltar.crafting.AddedAbstractAltarRecipe;
 import com.wdcftgg.astralaltar.crafting.AddedAltarRecipeRegistry;
 import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
 import com.wdcftgg.astralaltar.gui.GuiAltarGod;
+import com.wdcftgg.astralaltar.gui.container.ContainerAltarGod;
+import hellfirepvp.astralsorcery.common.container.ContainerAltarAttunement;
+import hellfirepvp.astralsorcery.common.container.ContainerAltarConstellation;
+import hellfirepvp.astralsorcery.common.container.ContainerAltarDiscovery;
+import hellfirepvp.astralsorcery.common.container.ContainerAltarTrait;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.ConstellationRecipe;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.TraitRecipe;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
 import hellfirepvp.astralsorcery.common.integrations.ModIntegrationJEI;
+import hellfirepvp.astralsorcery.common.integrations.mods.jei.util.TieredAltarRecipeTransferHandler;
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.IJeiHelpers;
 import mezz.jei.api.IJeiRuntime;
@@ -30,6 +36,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static hellfirepvp.astralsorcery.common.integrations.ModIntegrationJEI.stackHelper;
 
 @JEIPlugin
 public class AstralAltarJeiPlugin implements IModPlugin {
@@ -67,11 +75,11 @@ public class AstralAltarJeiPlugin implements IModPlugin {
                 45,
                 48,
                 48,
-                ID_ALTAR_GOD,
                 ModIntegrationJEI.idAltarDiscovery,
                 ModIntegrationJEI.idAltarAttunement,
                 ModIntegrationJEI.idAltarConstellation,
-                ModIntegrationJEI.idAltarTrait
+                ModIntegrationJEI.idAltarTrait,
+                ID_ALTAR_GOD
         );
 
         if (subtypeRegistry == null) {
@@ -84,23 +92,23 @@ public class AstralAltarJeiPlugin implements IModPlugin {
         StackHelper jeiStackHelper = new StackHelper(subtypeRegistry);
 
         transferRegistry.addRecipeTransferHandler(
-                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper, buildDiscoveryTransferSlots()),
+                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper),
                 ModIntegrationJEI.idAltarDiscovery
         );
         transferRegistry.addRecipeTransferHandler(
-                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper, buildAttunementTransferSlots()),
+                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper),
                 ModIntegrationJEI.idAltarAttunement
         );
         transferRegistry.addRecipeTransferHandler(
-                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper, buildConstellationTransferSlots()),
+                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper),
                 ModIntegrationJEI.idAltarConstellation
         );
         transferRegistry.addRecipeTransferHandler(
-                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper, buildTraitTransferSlots()),
+                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper),
                 ModIntegrationJEI.idAltarTrait
         );
         transferRegistry.addRecipeTransferHandler(
-                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper, buildGodTransferSlots()),
+                new GodAltarRecipeTransferHandler(jeiStackHelper, transferHelper),
                 ID_ALTAR_GOD
         );
     }
@@ -115,49 +123,5 @@ public class AstralAltarJeiPlugin implements IModPlugin {
                 .filter(GodRecipe.class::isInstance)
                 .map(GodRecipe.class::cast)
                 .collect(Collectors.toList());
-    }
-
-    private static int toContainerSlot(int internalSlotId) {
-        return 36 + internalSlotId;
-    }
-
-    private static List<Integer> buildDiscoveryTransferSlots() {
-        List<Integer> slots = new ArrayList<>();
-        for (ShapedRecipeSlot slot : ShapedRecipeSlot.values()) {
-            slots.add(toContainerSlot(slot.getSlotID()));
-        }
-        return slots;
-    }
-
-    private static List<Integer> buildAttunementTransferSlots() {
-        List<Integer> slots = buildDiscoveryTransferSlots();
-        for (AttunementRecipe.AttunementAltarSlot slot : AttunementRecipe.AttunementAltarSlot.values()) {
-            slots.add(toContainerSlot(slot.getSlotId()));
-        }
-        return slots;
-    }
-
-    private static List<Integer> buildConstellationTransferSlots() {
-        List<Integer> slots = buildAttunementTransferSlots();
-        for (ConstellationRecipe.ConstellationAtlarSlot slot : ConstellationRecipe.ConstellationAtlarSlot.values()) {
-            slots.add(toContainerSlot(slot.getSlotId()));
-        }
-        return slots;
-    }
-
-    private static List<Integer> buildTraitTransferSlots() {
-        List<Integer> slots = buildConstellationTransferSlots();
-        for (TraitRecipe.TraitRecipeSlot slot : TraitRecipe.TraitRecipeSlot.values()) {
-            slots.add(toContainerSlot(slot.getSlotId()));
-        }
-        return slots;
-    }
-
-    private static List<Integer> buildGodTransferSlots() {
-        List<Integer> slots = buildTraitTransferSlots();
-        for (GodRecipe.GodRecipeSlot slot : GodRecipe.GodRecipeSlot.values()) {
-            slots.add(toContainerSlot(slot.getSlotId()));
-        }
-        return slots;
     }
 }

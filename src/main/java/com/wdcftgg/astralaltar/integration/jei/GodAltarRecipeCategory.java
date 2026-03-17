@@ -7,6 +7,8 @@ import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.ConstellationRecipe;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.TraitRecipe;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
+import hellfirepvp.astralsorcery.common.integrations.ModIntegrationJEI;
+import hellfirepvp.astralsorcery.common.integrations.mods.jei.base.JEIBaseCategory;
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.gui.IDrawable;
 import mezz.jei.api.gui.IGuiItemStackGroup;
@@ -15,18 +17,22 @@ import mezz.jei.api.ingredients.IIngredients;
 import mezz.jei.api.recipe.IRecipeCategory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 
 import java.awt.Point;
+import java.util.List;
 import java.util.Map;
 
-public class GodAltarRecipeCategory implements IRecipeCategory<GodAltarRecipeWrapper> {
+public class GodAltarRecipeCategory extends JEIBaseCategory<GodAltarRecipeWrapper> {
 
     private static final ResourceLocation BACKGROUND = new ResourceLocation(AstralAltar.MODID, "textures/gui/jei/recipealtargod.png");
     private static final int BACKGROUND_WIDTH = 154;
     private static final int BACKGROUND_HEIGHT = 200;
+    private static final int OUTPUT_SLOT_INDEX = 100;
     private static final int FOCUS_SLOT_ID = 25;
     private static final Map<Integer, Point> SLOT_POSITIONS = Maps.newHashMap();
 
@@ -124,6 +130,7 @@ public class GodAltarRecipeCategory implements IRecipeCategory<GodAltarRecipeWra
     private final IDrawable background;
 
     public GodAltarRecipeCategory(IGuiHelper guiHelper) {
+        super("jei.category.altar.god", AstralAltarJeiPlugin.ID_ALTAR_GOD);
         this.background = guiHelper.drawableBuilder(BACKGROUND, 0, 0, BACKGROUND_WIDTH, BACKGROUND_HEIGHT).setTextureSize(BACKGROUND_WIDTH, BACKGROUND_HEIGHT).build();
     }
 
@@ -158,17 +165,21 @@ public class GodAltarRecipeCategory implements IRecipeCategory<GodAltarRecipeWra
     @Override
     public void setRecipe(IRecipeLayout recipeLayout, GodAltarRecipeWrapper recipeWrapper, IIngredients ingredients) {
         IGuiItemStackGroup stacks = recipeLayout.getItemStacks();
-        stacks.init(0, false, 70, 17);
+        stacks.init(OUTPUT_SLOT_INDEX, false, 70, 17);
 
-        int index = 1;
+        int index = 0;
         index = initShaped(stacks, index);
         index = initAttunement(stacks, index);
         index = initConstellation(stacks, index);
         index = initTrait(stacks, index);
         index = initGod(stacks, index);
-        initOuterItems(stacks, index, recipeWrapper.getRecipe().getGodItemHandles().size());
+        List<Integer> outerSlots = initOuterItems(stacks, index, recipeWrapper.getRecipe().getGodItemHandles().size());
 
         stacks.set(ingredients);
+        List<NonNullList<ItemStack>> outerItems = recipeWrapper.getRecipe().getGodItems();
+        for (int i = 0; i < outerSlots.size() && i < outerItems.size(); i++) {
+            stacks.set(outerSlots.get(i), outerItems.get(i));
+        }
         stacks.addTooltipCallback((slotIndex, input, ingredient, tooltip) -> {
             if (!input && Minecraft.getMinecraft().gameSettings.showDebugInfo && recipeWrapper.getRecipe().getNativeRecipe().getRegistryName() != null) {
                 tooltip.add("");
@@ -222,9 +233,10 @@ public class GodAltarRecipeCategory implements IRecipeCategory<GodAltarRecipeWra
         return index;
     }
 
-    private void initOuterItems(IGuiItemStackGroup stacks, int startIndex, int count) {
+    private List<Integer> initOuterItems(IGuiItemStackGroup stacks, int startIndex, int count) {
+        List<Integer> initializedSlots = new java.util.ArrayList<>();
         if (count <= 0) {
-            return;
+            return initializedSlots;
         }
         int centerX = 68;
         int centerY = 114;
@@ -236,7 +248,10 @@ public class GodAltarRecipeCategory implements IRecipeCategory<GodAltarRecipeWra
             part += Math.PI;
             double xAdd = Math.sin(part) * radius;
             double yAdd = Math.cos(part) * radius;
-            stacks.init(startIndex + i, true, MathHelper.floor((double)centerX + xAdd), MathHelper.floor((double)centerY + yAdd));
+            int slotIndex = startIndex + i;
+            stacks.init(slotIndex, false, MathHelper.floor((double)centerX + xAdd), MathHelper.floor((double)centerY + yAdd));
+            initializedSlots.add(slotIndex);
         }
+        return initializedSlots;
     }
 }

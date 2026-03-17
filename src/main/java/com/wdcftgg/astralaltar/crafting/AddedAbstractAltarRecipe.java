@@ -328,6 +328,9 @@ public class AddedAbstractAltarRecipe{
 
     public void onCraftServerFinish(TileGodAltar altar, Random rand) {}
 
+    // Called when a running craft is aborted before completion.
+    public void onCraftServerAbort(TileGodAltar altar, Random rand) {}
+
     public void onCraftServerTick(TileGodAltar altar, AddedActiveCraftingTask.CraftingState state, int tick, int totalCraftingTime, Random rand) {}
 
     @SideOnly(Side.CLIENT)

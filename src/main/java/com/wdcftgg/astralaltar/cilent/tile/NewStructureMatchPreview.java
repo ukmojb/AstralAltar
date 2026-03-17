@@ -111,7 +111,9 @@ public class NewStructureMatchPreview {
 
         BlockPos center = getOrigin();
 
-        IBlockAccess airWorld = new AirBlockRenderWorld(Biomes.PLAINS, WorldType.DEBUG_ALL_BLOCK_STATES);
+        IBlockAccess airWorld = new AirBlockRenderWorld(Biomes.VOID, WorldType.DEBUG_ALL_BLOCK_STATES) {
+
+        };
         Tessellator tes = Tessellator.getInstance();
         BufferBuilder vb = tes.getBuffer();
 

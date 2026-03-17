@@ -212,7 +212,7 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     public void onBreak() {
         super.onBreak();
         if (!this.world.isRemote && !this.focusItem.isEmpty()) {
-            ItemUtils.dropItemNaturally(this.world, (double)this.pos.getX() + 0.5, (double)this.pos.getY() + 0.5, (double)this.pos.getZ() + 0.5, this.focusItem);
+//            ItemUtils.dropItemNaturally(this.world, (double)this.pos.getX() + 0.5, (double)this.pos.getY() + 0.5, (double)this.pos.getZ() + 0.5, this.focusItem);
             this.focusItem = ItemStack.EMPTY;
         }
 
@@ -345,6 +345,9 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     }
 
     private void abortCrafting() {
+        if (this.craftingTask != null) {
+            this.craftingTask.getRecipeToCraft().onCraftServerAbort(this, rand);
+        }
         this.craftingTask = null;
         this.markForUpdate();
     }
@@ -759,12 +762,7 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        AxisAlignedBB box = super.getRenderBoundingBox().expand(0.0, 20.0, 0.0);
-        if (this.level != null) {
-            box = box.grow(5.0, 0.0, 5.0);
-        }
-
-        return box;
+        return new AxisAlignedBB(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
     }
 
 

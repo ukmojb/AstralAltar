@@ -1,9 +1,4 @@
-itemGroup.astralaltar=Astral Altar
+itemGroup.astralaltar_tab==Astral Altar
 tile.astralaltar.god_altar.name=Radiant Altar
-jei.category.altar.god=God Altar
-astralaltar.jei.god.starlight=Starlight: %s
-astralaltar.jei.god.relays=Outer Relays: %s
-astralaltar.jei.god.liquid=Liquid Starlight: %s mb
-astralaltar.jei.god.focus=Focus: %s
 
 item.itemsextant.evolution=Evolution

@@ -2,6 +2,7 @@ package com.wdcftgg.astralaltar.blocks;
 
 import com.wdcftgg.astralaltar.AstralAltar;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
+import com.wdcftgg.astralaltar.init.ModCreativeTab;
 import com.wdcftgg.astralaltar.items.ModItems;
 import com.wdcftgg.astralaltar.util.IHasModel;
 import hellfirepvp.astralsorcery.common.block.BlockAttunementRelay;
@@ -56,7 +57,7 @@ public class BlockGodAltar extends BlockAltar implements IHasModel {
         this.setHarvestLevel("pickaxe", 2);
         this.setTranslationKey(AstralAltar.MODID + ".god_altar");
         this.setRegistryName("god_altar");
-        this.setCreativeTab(RegistryItems.creativeTabAstralSorcery);
+        this.setCreativeTab(ModCreativeTab.Tab);
 
         ModBlocks.BLOCKS.add(this);
         ModItems.ITEMS.add(new ItemBlock(this).setRegistryName(this.getRegistryName()));

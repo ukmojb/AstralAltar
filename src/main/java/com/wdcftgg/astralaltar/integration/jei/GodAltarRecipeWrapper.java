@@ -10,6 +10,7 @@ import hellfirepvp.astralsorcery.common.crafting.altar.recipes.ConstellationReci
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.TraitRecipe;
 import hellfirepvp.astralsorcery.common.crafting.helper.AccessibleRecipe;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
+import hellfirepvp.astralsorcery.common.integrations.mods.jei.base.JEIBaseWrapper;
 import mezz.jei.api.ingredients.IIngredients;
 import mezz.jei.api.recipe.IRecipeWrapper;
 import net.minecraft.client.Minecraft;
@@ -21,7 +22,7 @@ import net.minecraft.util.NonNullList;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GodAltarRecipeWrapper implements IRecipeWrapper {
+public class GodAltarRecipeWrapper extends JEIBaseWrapper {
 
     private final GodRecipe recipe;
 
@@ -57,7 +58,6 @@ public class GodAltarRecipeWrapper implements IRecipeWrapper {
             for (GodRecipe.GodRecipeSlot slot : GodRecipe.GodRecipeSlot.values()) {
                 inputs.add(recipe.getGodItems(slot));
             }
-            inputs.addAll(recipe.getGodItems());
 
             ingredients.setInputLists(ItemStack.class, inputs);
             ingredients.setOutput(ItemStack.class, recipe.getOutputForRender());
@@ -68,29 +68,6 @@ public class GodAltarRecipeWrapper implements IRecipeWrapper {
 
     @Override
     public void drawInfo(Minecraft minecraft, int recipeWidth, int recipeHeight, int mouseX, int mouseY) {
-//        IConstellation requiredConstellation = recipe.getRequiredConstellation();
-//        if (requiredConstellation != null) {
-//            GlStateManager.disableAlpha();
-//            RenderConstellation.renderConstellationIntoGUI(
-//                    requiredConstellation.getConstellationColor(),
-//                    requiredConstellation,
-//                    4,
-//                    50,
-//                    0F,
-//                    30,
-//                    30,
-//                    1.6D,
-//                    new RenderConstellation.BrightnessFunction() {
-//                        @Override
-//                        public float getBrightness() {
-//                            return 1F;
-//                        }
-//                    },
-//                    true,
-//                    false
-//            );
-//            GlStateManager.enableAlpha();
-//        }
 
         if (this.recipe.getRequiredConstellation() != null) {
             GlStateManager.disableAlpha();

@@ -1,6 +1,7 @@
 package com.wdcftgg.astralaltar.init;
 
 import com.wdcftgg.astralaltar.AstralAltar;
+import com.wdcftgg.astralaltar.blocks.ModBlocks;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
@@ -11,7 +12,7 @@ public class ModCreativeTab {
     public static final CreativeTabs Tab = new CreativeTabs(CreativeTabs.getNextID(), AstralAltar.MODID + "_tab") {
         @SideOnly(Side.CLIENT)
         public ItemStack createIcon() {
-            return new ItemStack(Items.APPLE);
+            return new ItemStack(ModBlocks.godAltar);
         }
     };
 }

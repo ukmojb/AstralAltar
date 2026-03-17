@@ -2,6 +2,7 @@ package com.wdcftgg.astralaltar.mixin.item;
 
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.cilent.effect.NewEffectHandler;
+import com.wdcftgg.astralaltar.init.ModCreativeTab;
 import com.wdcftgg.astralaltar.init.RegistryStructures;
 import com.wdcftgg.astralaltar.init.multiblock.NewStructureRegistry;
 import hellfirepvp.astralsorcery.common.item.tool.sextant.ItemSextant;
@@ -103,9 +104,14 @@ public abstract class MixinItemSextant {
 
     @Inject(method = "getSubItems", at = @At(value = "TAIL", target = "Lhellfirepvp/astralsorcery/common/item/tool/sextant/ItemSextant;setAdvanced(Lnet/minecraft/item/ItemStack;)V"))
     public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> items, CallbackInfo ci) {
+        if (tab != ModCreativeTab.Tab) {
+            return;
+        }
+
         ItemStack evo = new ItemStack(ItemsAS.sextant);
         astralaltar$setEvolution(evo);
         setAdvanced(evo);
+
         items.add(evo);
     }
 

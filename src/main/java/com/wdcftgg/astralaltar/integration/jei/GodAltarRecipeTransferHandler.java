@@ -3,6 +3,7 @@ package com.wdcftgg.astralaltar.integration.jei;
 import com.google.common.collect.Maps;
 import com.wdcftgg.astralaltar.gui.container.ContainerAltarGod;
 import hellfirepvp.astralsorcery.common.integrations.mods.jei.util.JEISessionHandler;
+import hellfirepvp.astralsorcery.common.util.data.Tuple;
 import mezz.jei.JustEnoughItems;
 import mezz.jei.api.gui.IGuiIngredient;
 import mezz.jei.api.gui.IGuiItemStackGroup;
@@ -18,28 +19,24 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import javax.annotation.Nullable;
+import java.util.*;
 
 public class GodAltarRecipeTransferHandler implements IRecipeTransferHandler<ContainerAltarGod> {
 
     private final StackHelper stackHelper;
     private final IRecipeTransferHandlerHelper handlerHelper;
-    private final List<Integer> recipeSlotNumbers;
+
+    private static final Tuple<Integer, Integer>[] mirrorMapping = new Tuple[] {
+            new Tuple<>(2, 4),
+            new Tuple<>(3, 7),
+            new Tuple<>(6, 8)
+    };
 
     public GodAltarRecipeTransferHandler(StackHelper stackHelper,
-                                         IRecipeTransferHandlerHelper handlerHelper,
-                                         List<Integer> recipeSlotNumbers) {
+                                         IRecipeTransferHandlerHelper handlerHelper) {
         this.stackHelper = stackHelper;
         this.handlerHelper = handlerHelper;
-        this.recipeSlotNumbers = Collections.unmodifiableList(new ArrayList<>(recipeSlotNumbers));
     }
 
     @Override
@@ -47,114 +44,141 @@ public class GodAltarRecipeTransferHandler implements IRecipeTransferHandler<Con
         return ContainerAltarGod.class;
     }
 
+    @Nullable
     @Override
     public IRecipeTransferError transferRecipe(ContainerAltarGod container, IRecipeLayout recipeLayout, EntityPlayer player, boolean maxTransfer, boolean doTransfer) {
         if (!JEISessionHandler.getInstance().isJeiOnServer()) {
-            return handlerHelper.createUserErrorWithTooltip(Translator.translateToLocal("jei.tooltip.error.recipe.transfer.no.server"));
+            String tooltipMessage = Translator.translateToLocal("jei.tooltip.error.recipe.transfer.no.server");
+            return handlerHelper.createUserErrorWithTooltip(tooltipMessage);
         }
 
-        Map<Integer, Slot> playerSlots = new HashMap<>();
+        Map<Integer, Slot> inventorySlots = new HashMap<>();
         for (Slot slot : container.inventorySlots.subList(0, 36)) {
-            playerSlots.put(slot.slotNumber, slot);
+            inventorySlots.put(slot.slotNumber, slot);
         }
 
-        Map<Integer, Slot> recipeSlots = new HashMap<>();
-        for (Integer slotNumber : recipeSlotNumbers) {
-            if (slotNumber < 0 || slotNumber >= container.inventorySlots.size()) {
-                Log.get().error("Recipe Transfer helper {} references slot {} outside of the inventory's size {}",
-                        container.getClass(), slotNumber, container.inventorySlots.size());
-                return handlerHelper.createInternalError();
+        Map<Integer, Slot> craftingSlots = new HashMap<>();
+        for (Slot slot : container.inventorySlots.subList(36, 36 + 42)) {
+            if (slot.getSlotIndex() == 25) {
+                // Focus slot is part of the container grid but not a transfer input slot.
+                continue;
             }
-            Slot slot = container.getSlot(slotNumber);
-            recipeSlots.put(slot.slotNumber, slot);
+            craftingSlots.put(slot.slotNumber, slot);
         }
 
-        IGuiItemStackGroup itemStacks = recipeLayout.getItemStacks();
-        Map<Integer, ? extends IGuiIngredient<ItemStack>> guiIngredients = Maps.newHashMap(itemStacks.getGuiIngredients());
-        List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> orderedInputs = new ArrayList<>();
-        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> entry : guiIngredients.entrySet()) {
-            Integer ingredientIndex = entry.getKey();
-            IGuiIngredient<ItemStack> ingredient = entry.getValue();
-            if (ingredientIndex == null || ingredientIndex <= 0 || ingredientIndex > recipeSlotNumbers.size()) {
+        int inputCount = 0;
+        IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
+        Map<Integer, ? extends IGuiIngredient<ItemStack>> itemGroup = Maps.newHashMap(itemStackGroup.getGuiIngredients());
+        Iterator<Integer> iterator = itemGroup.keySet().iterator();
+        while (iterator.hasNext()) {
+            Integer slotId = iterator.next();
+            if (slotId > craftingSlots.size()) {
+                iterator.remove();
                 continue;
             }
-            if (!ingredient.isInput() || ingredient.getAllIngredients().isEmpty()) {
-                continue;
+
+            IGuiIngredient<ItemStack> ingredient = itemGroup.get(slotId);
+            if (ingredient.isInput() && !ingredient.getAllIngredients().isEmpty()) {
+                inputCount++;
             }
-            orderedInputs.add(entry);
         }
-        orderedInputs.sort(Comparator.comparingInt(Map.Entry::getKey));
+
+        if (inputCount > craftingSlots.size()) {
+            Log.get().error("Recipe Transfer helper {} does not work for container {}", ContainerAltarGod.class, container.getClass());
+            return handlerHelper.createInternalError();
+        }
 
         Map<Integer, ItemStack> availableItemStacks = new HashMap<>();
-        int filledRecipeSlots = 0;
-        for (Slot slot : recipeSlots.values()) {
-            ItemStack stack = slot.getStack();
+        int filledCraftSlotCount = 0;
+        int emptySlotCount = 0;
+
+        for (Slot slot : craftingSlots.values()) {
+            final ItemStack stack = slot.getStack();
             if (!stack.isEmpty()) {
                 if (!slot.canTakeStack(player)) {
-                    Log.get().error("Recipe Transfer helper {} does not work for container {}. Player can't move item out of Crafting Slot number {}",
-                            this.getClass(), container.getClass(), slot.slotNumber);
+                    Log.get().error("Recipe Transfer helper {} does not work for container {}. Player can't move item out of Crafting Slot number {}", ContainerAltarGod.class, container.getClass(), slot.slotNumber);
                     return handlerHelper.createInternalError();
                 }
-                filledRecipeSlots++;
+                filledCraftSlotCount++;
                 availableItemStacks.put(slot.slotNumber, stack.copy());
             }
         }
 
-        int emptyPlayerSlots = 0;
-        for (Slot slot : playerSlots.values()) {
-            ItemStack stack = slot.getStack();
-            if (stack.isEmpty()) {
-                emptyPlayerSlots++;
+        for (Slot slot : inventorySlots.values()) {
+            final ItemStack stack = slot.getStack();
+            if (!stack.isEmpty()) {
+                availableItemStacks.put(slot.slotNumber, stack.copy());
             } else {
-                availableItemStacks.put(slot.slotNumber, stack.copy());
+                emptySlotCount++;
             }
         }
 
-        if (filledRecipeSlots - orderedInputs.size() > emptyPlayerSlots) {
-            return handlerHelper.createUserErrorWithTooltip(Translator.translateToLocal("jei.tooltip.error.recipe.transfer.inventory.full"));
+        // check if we have enough inventory space to shuffle items around to their final locations
+        if (filledCraftSlotCount - inputCount > emptySlotCount) {
+            String message = Translator.translateToLocal("jei.tooltip.error.recipe.transfer.inventory.full");
+            return handlerHelper.createUserErrorWithTooltip(message);
         }
 
-        Map<Integer, IGuiIngredient<ItemStack>> indexedIngredients = new HashMap<>();
-        for (int i = 0; i < orderedInputs.size(); i++) {
-            indexedIngredients.put(i, orderedInputs.get(i).getValue());
+        StackHelper.MatchingItemsResult matchingItemsResult = stackHelper.getMatchingItems(availableItemStacks, itemGroup);
+
+        if (matchingItemsResult.missingItems.size() > 0) {
+            String message = Translator.translateToLocal("jei.tooltip.error.recipe.transfer.missing");
+            return handlerHelper.createUserErrorForSlots(message, matchingItemsResult.missingItems);
         }
 
-        StackHelper.MatchingItemsResult matchingItemsResult = stackHelper.getMatchingItems(availableItemStacks, indexedIngredients);
-        if (!matchingItemsResult.missingItems.isEmpty()) {
-            return handlerHelper.createUserErrorForSlots(
-                    Translator.translateToLocal("jei.tooltip.error.recipe.transfer.missing"),
-                    remapMissingGuiSlots(matchingItemsResult.missingItems, orderedInputs)
-            );
+
+        List<Integer> craftingSlotIndexes = new ArrayList<>(craftingSlots.keySet());
+        Collections.sort(craftingSlotIndexes);
+
+        List<Integer> inventorySlotIndexes = new ArrayList<>(inventorySlots.keySet());
+        Collections.sort(inventorySlotIndexes);
+
+        // check that the slots exist and can be altered
+        for (Map.Entry<Integer, Integer> entry : matchingItemsResult.matchingItems.entrySet()) {
+            int craftNumber = entry.getKey();
+            int slotNumber = craftingSlotIndexes.get(craftNumber);
+            if (slotNumber < 0 || slotNumber >= container.inventorySlots.size()) {
+                Log.get().error("Recipes Transfer Helper {} references slot {} outside of the inventory's size {}", ContainerAltarGod.class, slotNumber, container.inventorySlots.size());
+                return handlerHelper.createInternalError();
+            }
         }
+
+        mirrorGrid(craftingSlotIndexes);
+        Map<Integer, Integer> slotMap = Maps.newHashMap(matchingItemsResult.matchingItems);
+        mirrorSlotGrid(slotMap);
 
         if (doTransfer) {
-            List<Integer> craftingSlotIndexes = new ArrayList<>(recipeSlotNumbers);
-            List<Integer> inventorySlotIndexes = new ArrayList<>(playerSlots.keySet());
-            Collections.sort(craftingSlotIndexes);
-            Collections.sort(inventorySlotIndexes);
-            PacketRecipeTransfer packet = new PacketRecipeTransfer(
-                    Maps.newHashMap(matchingItemsResult.matchingItems),
-                    craftingSlotIndexes,
-                    inventorySlotIndexes,
-                    maxTransfer,
-                    true
-            );
+            PacketRecipeTransfer packet = new PacketRecipeTransfer(slotMap, craftingSlotIndexes, inventorySlotIndexes, maxTransfer, true);
             JustEnoughItems.getProxy().sendPacketToServer(packet);
         }
 
         return null;
     }
 
-    private static List<Integer> remapMissingGuiSlots(Collection<Integer> missingItems,
-                                                      List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> orderedInputs) {
-        Set<Integer> remapped = new LinkedHashSet<>();
-        for (Integer missingIndex : missingItems) {
-            if (missingIndex != null && missingIndex >= 0 && missingIndex < orderedInputs.size()) {
-                remapped.add(orderedInputs.get(missingIndex).getKey());
-            } else if (missingIndex != null) {
-                remapped.add(missingIndex);
+    private void mirrorSlotGrid(Map<Integer, Integer> slotMap) {
+        for (Tuple<Integer, Integer> mirrorPair : mirrorMapping) {
+            if (slotMap.containsKey(mirrorPair.key)) {
+                Integer keyCache = slotMap.get(mirrorPair.key);
+
+                if (slotMap.containsKey(mirrorPair.value)) {
+                    slotMap.put(mirrorPair.key, slotMap.remove(mirrorPair.value));
+                } else {
+                    slotMap.remove(mirrorPair.key);
+                }
+                slotMap.put(mirrorPair.value, keyCache);
+            } else {
+                if (slotMap.containsKey(mirrorPair.value)) {
+                    slotMap.put(mirrorPair.key, slotMap.remove(mirrorPair.value));
+                }
             }
         }
-        return new ArrayList<>(remapped);
+    }
+
+    private void mirrorGrid(List<Integer> slotIndexes) {
+        for (Tuple<Integer, Integer> mirrorPair : mirrorMapping) {
+            Integer slotFrom = slotIndexes.get(mirrorPair.key);
+            slotIndexes.set(mirrorPair.key, slotIndexes.get(mirrorPair.value));
+            slotIndexes.set(mirrorPair.value, slotFrom);
+        }
     }
 }

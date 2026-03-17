@@ -69,6 +69,8 @@ public class AddedRegistryRecipes {
                 GodRecipeSlot.RIGHT_UPPER);
         test.setPassiveStarlightRequirement(6500);
         test.setRequiredConstellation(Constellations.vicio);
+        test.setGodLiquidStarlight(6000);
+        test.addRequiredOuterConstellation(Constellations.vicio);
 
     }
 }

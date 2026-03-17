@@ -3,7 +3,9 @@ package com.wdcftgg.astralaltar.init.multiblock;
 import com.google.common.base.Optional;
 import com.wdcftgg.astralaltar.AstralAltar;
 import com.wdcftgg.astralaltar.blocks.ModBlocks;
+import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
+import hellfirepvp.astralsorcery.common.util.BlockStateCheck;
 import net.minecraft.block.Block;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
@@ -165,7 +167,7 @@ public class MultiblockAltarGod2 extends PatternBlockArray {
                 -7, 0, -4, -7, 0, 4, -4, 0, -7, -4, 0, 7, 4, 0, -7, 4, 0, 7, 7, 0, -4, 7, 0, 4);
 
         // cc
-        addAll(cc,
+        addAll(cc, MultiblockAltarGod2::isCollectorCrystalLike,
                 -3, 6, -3, -3, 6, 3, 3, 6, -3, 3, 6, 3);
 
         // msb
@@ -202,6 +204,20 @@ public class MultiblockAltarGod2 extends PatternBlockArray {
         for (int i = 0; i < coords.length; i += 3) {
             this.addBlock(coords[i], coords[i + 1], coords[i + 2], state);
         }
+    }
+
+    private void addAll(IBlockState state, BlockStateCheck check, int... coords) {
+        if (coords.length % 3 != 0) {
+            throw new IllegalArgumentException("coords length must be a multiple of 3");
+        }
+        for (int i = 0; i < coords.length; i += 3) {
+            this.addBlock(coords[i], coords[i + 1], coords[i + 2], state, check);
+        }
+    }
+
+    private static boolean isCollectorCrystalLike(IBlockState state) {
+        Block block = state.getBlock();
+        return block == BlocksAS.collectorCrystal || block == BlocksAS.celestialCollectorCrystal;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

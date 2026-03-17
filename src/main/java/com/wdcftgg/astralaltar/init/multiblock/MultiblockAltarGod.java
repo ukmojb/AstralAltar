@@ -7,6 +7,7 @@ import hellfirepvp.astralsorcery.common.block.BlockMarbleSlab;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.MultiBlockArrays;
 import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
+import hellfirepvp.astralsorcery.common.util.BlockStateCheck;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.block.state.IBlockState;
@@ -31,6 +32,7 @@ public class MultiblockAltarGod extends PatternBlockArray {
         IBlockState msb = BlocksAS.blockMarbleSlab.getDefaultState().withProperty(BlockMarbleSlab.HALF, BlockSlab.EnumBlockHalf.BOTTOM);
         IBlockState mst = BlocksAS.blockMarbleSlab.getDefaultState().withProperty(BlockMarbleSlab.HALF, BlockSlab.EnumBlockHalf.TOP);
         IBlockState cc = BlocksAS.collectorCrystal.getDefaultState();
+        BlockStateCheck collectorOrCelestial = MultiblockAltarGod::isCollectorCrystalLike;
 //        IBlockState ccc = BlocksAS.celestialCollectorCrystal.getDefaultState();
 
         //底部-大理石
@@ -310,14 +312,19 @@ public class MultiblockAltarGod extends PatternBlockArray {
         this.addBlock(5, 7, -3, meg);
 
         //聚能水晶
-        this.addBlock(3, 6, 3, cc);
-        this.addBlock(-3, 6, 3, cc);
-        this.addBlock(-3, 6, -3, cc);
-        this.addBlock(3, 6, -3, cc);
+        this.addBlock(3, 6, 3, cc, collectorOrCelestial);
+        this.addBlock(-3, 6, 3, cc, collectorOrCelestial);
+        this.addBlock(-3, 6, -3, cc, collectorOrCelestial);
+        this.addBlock(3, 6, -3, cc, collectorOrCelestial);
 
         //天体聚能水晶
 //        this.addBlock(0, 8, 0, ccc);
 
         this.addBlock(0, 0, 0, ModBlocks.godAltar.getDefaultState());
+    }
+
+    private static boolean isCollectorCrystalLike(IBlockState state) {
+        Block block = state.getBlock();
+        return block == BlocksAS.collectorCrystal || block == BlocksAS.celestialCollectorCrystal;
     }
 }

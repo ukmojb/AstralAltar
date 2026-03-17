@@ -2,6 +2,7 @@ package com.wdcftgg.astralaltar.crafting.recipe;
 
 import com.google.common.collect.Lists;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
+import com.wdcftgg.astralaltar.util.AARenderConstellation;
 import com.wdcftgg.astralaltar.crafting.AddedAbstractAltarRecipe;
 import com.wdcftgg.astralaltar.crafting.AddedActiveCraftingTask;
 import com.wdcftgg.astralaltar.crafting.IAddedCraftingProgress;
@@ -12,12 +13,11 @@ import hellfirepvp.astralsorcery.client.effect.EffectHelper;
 import hellfirepvp.astralsorcery.client.effect.EntityComplexFX;
 import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
 import hellfirepvp.astralsorcery.client.effect.light.EffectLightbeam;
-import hellfirepvp.astralsorcery.client.util.Blending;
-import hellfirepvp.astralsorcery.client.util.ItemColorizationHelper;
-import hellfirepvp.astralsorcery.client.util.RenderingUtils;
+import hellfirepvp.astralsorcery.client.util.*;
 import hellfirepvp.astralsorcery.common.auxiliary.LiquidStarlightChaliceHandler;
 import hellfirepvp.astralsorcery.common.block.network.BlockCollectorCrystal;
 import hellfirepvp.astralsorcery.common.constellation.IConstellation;
+import hellfirepvp.astralsorcery.common.constellation.distribution.ConstellationSkyHandler;
 import hellfirepvp.astralsorcery.common.crafting.ItemHandle;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe;
 import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe.AttunementAltarSlot;
@@ -28,9 +28,11 @@ import hellfirepvp.astralsorcery.common.crafting.helper.AccessibleRecipe;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
+import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
 import hellfirepvp.astralsorcery.common.tile.TileAttunementRelay;
 import hellfirepvp.astralsorcery.common.tile.TileChalice;
 import hellfirepvp.astralsorcery.common.tile.base.TileReceiverBaseInventory;
+import hellfirepvp.astralsorcery.common.tile.network.TileCollectorCrystal;
 import hellfirepvp.astralsorcery.common.util.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
@@ -40,6 +42,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.IBakedModel;
@@ -50,20 +53,27 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3i;
 import com.wdcftgg.astralaltar.cilent.render.BakedQuadRetextured;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraft.world.WorldType;
+import net.minecraft.init.Biomes;
+import hellfirepvp.astralsorcery.common.structure.array.BlockArray;
+import net.minecraft.world.biome.Biome;
 import net.minecraftforge.client.model.pipeline.LightUtil;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.util.Constants;
@@ -75,36 +85,74 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemStackHandler;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 import org.lwjgl.BufferUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.nio.DoubleBuffer;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.stream.Collectors;
 
 public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftingProgress {
 
     private static final ResourceLocation starlightLiquidStill = new ResourceLocation("astralsorcery:blocks/fluid/starlight_still");
+    private static final String activeTAG = "isActive";
+    private static final BlockPos[] outerCrystalOffsets = new BlockPos[] {
+            new BlockPos(-3, 6, -3),
+            new BlockPos(-3, 6, 3),
+            new BlockPos(3, 6, -3),
+            new BlockPos(3, 6, 3)
+    };
+    public static final int constellationBegin = 500;
+    public static final int constellationEnd = 600;
+    private static final int liquidStarlightBegin = 770;
+    private static final int liquidStarlightEnd = 1070;
+    private static final int liquidGuideDelayTicks = 30;
+    private static final float liquidGuideFadeInStep = 0.035F;
+    private static final float liquidGuideFadeOutStep = 0.06F;
+    private static final float liquidGuideMaxAlpha = 1.00F;
+    private static final int chaliceScanRangeXZ = 20;
+    private static final int chaliceScanRangeY = 10;
+    private static final int chaliceRescanIntervalTicks = 20;
+    private static final int chaliceScanBudgetPerTick = 320;
+    private static final float risingClipIncreasePerTick = 0.01F;
+
+    @SideOnly(Side.CLIENT)
+    private static final PatternBlockArray liquidGuidePattern = new MultiblockContainmentChalice();
+    @SideOnly(Side.CLIENT)
+    private static final IBlockAccess liquidGuideAirWorld = new WorldBlockArrayRenderAccess() {
+        @Override
+        public int getCombinedLight(BlockPos pos, int lightValue) {
+            return 0x00F000F0;
+        }
+    };
+    @SideOnly(Side.CLIENT)
+    private static LiquidGuidePatternMetrics liquidGuidePatternMetrics;
+
+    @SideOnly(Side.CLIENT)
+    private final Map<String, OuterConstellationRenderState> outerConstellationRenderStates = new HashMap<>();
+    @SideOnly(Side.CLIENT)
+    private final Map<String, OuterLiquidGuideRenderState> outerLiquidGuideRenderStates = new HashMap<>();
+    @SideOnly(Side.CLIENT)
+    private final Map<String, RisingClipRenderState> risingClipRenderStates = new HashMap<>();
+    private final Map<String, ChaliceSearchCache> chaliceSearchCaches = new HashMap<>();
 
 
 
     private List<ItemHandle> additionallyRequiredStacks = Lists.newLinkedList();
+
     private Map<GodRecipeSlot, ItemHandle> matchGodStacks = new HashMap<>();
+
     private IConstellation requiredConstellation = null;
+
+    private List<IConstellation> requiredOuterConstellations = new ArrayList<>(4);
+
     private Map<TraitRecipeSlot, ItemHandle> matchTraitStacks = new HashMap<>();
-    private int liquidStarlightRequired = 0;
 
-    private static Vector3[] offsetPillars = new Vector3[] {
-            new Vector3( 4, 3,  4),
-            new Vector3(-4, 3,  4),
-            new Vector3( 4, 3, -4),
-            new Vector3(-4, 3, -4)
-    };
-
+    private int requiredLiquidStarlight = 0;
     private Map<ConstellationAtlarSlot, ItemHandle> matchStacks = new HashMap<>();
     private Map<AttunementAltarSlot, ItemHandle> additionalSlots = new HashMap<>();
 
@@ -375,13 +423,31 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     }
 
     public GodRecipe setGodLiquidStarlight(int liquidStarlight) {
-        this.liquidStarlightRequired = liquidStarlight;
+        this.requiredLiquidStarlight = liquidStarlight;
         return this;
     }
 
     public int getLiquidStarlightRequired() {
-        return liquidStarlightRequired;
+        return requiredLiquidStarlight;
     }
+
+    public void setRequiredOuterConstellations(IConstellation... requiredOuter) {
+        if (requiredOuter.length > 4) {
+            throw new IllegalArgumentException("Cannot have more than 4 required outer constellations!");
+        }
+        this.requiredOuterConstellations = Arrays.asList(requiredOuter);
+    }
+
+    public void addRequiredOuterConstellation(IConstellation constellation) {
+        if (requiredOuterConstellations.size() > 4) {
+            throw new IllegalArgumentException("Cannot have more than 4 required outer constellations!");
+        }
+        this.requiredOuterConstellations.add(constellation);
+    }
+
+    public List<IConstellation> getRequiredOuterConstellations() {
+        return requiredOuterConstellations;
+    };
 
     public void setRequiredConstellation(IConstellation requiredConstellation) {
         this.requiredConstellation = requiredConstellation;
@@ -395,7 +461,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     @Override
     public int craftingTickTime() {
         super.craftingTickTime();
-        return 1000;
+        return 1300;
     }
 
     @Override
@@ -463,59 +529,77 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
 
         int required = additionallyRequiredStacks.size();
-        int liquidStarlightRequired = this.liquidStarlightRequired;
+        int outerConstellationsRequired = this.requiredOuterConstellations.size();
+        int liquidStarlightRequired = this.requiredLiquidStarlight;
+
         boolean noAdditionalItems = required <= 0; //No additional items, huh.
-        boolean noLiquidStarlightNeeded = liquidStarlightRequired <= 0; //No additional items, huh.
+        boolean noOuterConstellations = outerConstellationsRequired <= 0; //无外部星座需求
+        boolean noLiquidStarlight = liquidStarlightRequired <= 0; //无星能液需求
 
-        boolean finishOuterItem = true;
 
+        // 从零开始，每350/required个tick检查一次是否有新的中继器被使用，如果被使用了就记录下来，直到所有的required都被使用否则合成时间不继续走，等所有的required都被使用了才继续检查液体星辉的输入（如果需要的话）
+        // 0 - 350
         if (!noAdditionalItems) {
             int part = 350;
             int offset = 70;
             int cttPart = part / required;
+            boolean[] hasAssignedRelay = new boolean[required];
+            for (CraftingFocusStack stack : stacks) {
+                if (stack.stackIndex != null && stack.stackIndex >= 0 && stack.stackIndex < required) {
+                    hasAssignedRelay[stack.stackIndex] = true;
+                }
+            }
             for (int i = 0; i < required; i++) {
                 int timing = (i * cttPart) + offset;
                 if (activeCraftingTick >= timing) {
-                    CraftingFocusStack found = null;
-                    for (CraftingFocusStack stack : stacks) {
-                        if (stack.stackIndex == i) {
-                            found = stack;
-                            break;
-                        }
-                    }
-                    if (found == null) {
+                    if (!hasAssignedRelay[i]) {
                         BlockPos next = findUnusedRelay(altar, stacks);
                         if (next != null) {
                             CraftingFocusStack stack = new CraftingFocusStack(i, next);
                             stacks.add(stack);
                             storeCurrentStacks(craftingData, stacks);
                         }
-                        finishOuterItem = false;
                         return false;
                     }
                 }
             }
         }
-        
-        if (!noLiquidStarlightNeeded) {
+
+        // 右键聚能水晶来激活它,激活后就算作外部星座
+        // 500 - 600
+        if (!noOuterConstellations) {
+
+            int part = 100;
+            int begin = 500;
+            int cttPart = part / outerCrystalOffsets.length;
+            List<TileCollectorCrystal> activeCrystals = getOuterActiveCrystals(altar);
+            int activeCrystalCount = activeCrystals.size();
+            for (int i = 0; i < outerCrystalOffsets.length; i++) {
+                int timing = (i * cttPart) + begin;
+                if (activeCraftingTick == timing && activeCrystalCount <= i) {
+                    return false;
+                }
+                if (activeCraftingTick == 600) {
+                    if (activeCrystalCount == outerCrystalOffsets.length) {
+                        if (!(new HashSet<>(getCrystalConstellations(activeCrystals)).containsAll(requiredOuterConstellations))) {
+                            destroyNonRequiredOuterCrystals(altar);
+                            clearOuterConstellationCrystals(altar);
+                            return false;
+                        }
+                    }
+                }
+            }
+
+
+        }
+
+        // 检查液体星辉输入
+        // 770 - 1070
+        if (!noLiquidStarlight) {
             int allTime = 300;
             int totalSteps = 30;
-            int begin = (required * 350 / required) + 170;
+            int begin = 770;
             int cttPart = allTime / totalSteps;
-//            int totalTime = ((liquidStarlightRequired - altar.getFluidAmount()) / mbNeeded);
-//            for (int i = 30 - totalTime ; i < totalTime; i++) {
-//                int timing = (i * cttPart) + begin;
-////                if (activeCraftingTick >= timing) {
-////                    System.out.println("activeCraftingTick--" + activeCraftingTick);
-////                    System.out.println("timing--" + timing);
-////                    System.out.println("i--" + i);
-////                }
-//                if (activeCraftingTick == timing) {
-//                    if (!findChaliceAndFluidTransfer(altar, mbNeeded)) {
-//                        return false;
-//                    }
-//                }
-//            }
             int perStep = (int) Math.floor(liquidStarlightRequired / (double) totalSteps);
             int totalTime = ((liquidStarlightRequired - altar.getFluidAmount()) / perStep);
 
@@ -528,14 +612,17 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
                 }
             }
 
-            if (altar.getFluidAmount() < this.liquidStarlightRequired) {
+            if (altar.getFluidAmount() < this.requiredLiquidStarlight) {
                 int timing = (30 * cttPart) + begin;
                 if (activeCraftingTick == timing) {
-                    int lastNeeded = this.liquidStarlightRequired - altar.getFluidAmount();
+                    int lastNeeded = this.requiredLiquidStarlight - altar.getFluidAmount();
                     return findChaliceAndFluidTransfer(altar, lastNeeded);
                 }
             }
         }
+
+        // 默认动画
+        // 1070 - 1300
 
         return true;
     }
@@ -548,14 +635,124 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         FluidStack fluidStack = new FluidStack(BlocksAS.fluidLiquidStarlight, needed);
         LiquidStarlightChaliceHandler.doFluidTransfer(chalice, altar, fluidStack.copy());
         chalice.getTank().drain(needed, true);
-        System.out.println("needed--" + needed);
         return true;
+    }
+
+    private List<TileCollectorCrystal> findCrystals(TileGodAltar altar) {
+        List<TileCollectorCrystal> crystals = new ArrayList<>();
+        for (BlockPos offset : outerCrystalOffsets) {
+            TileCollectorCrystal crystal = MiscUtils.getTileAt(altar.getWorld(), altar.getPos().add(offset), TileCollectorCrystal.class, true);
+            if (crystal != null) {
+                crystals.add(crystal);
+            }
+        }
+
+        return crystals;
+    }
+
+    private void destroyNonRequiredOuterCrystals(TileGodAltar altar) {
+        World world = altar.getWorld();
+        if (world.isRemote) {
+            return;
+        }
+
+        Set<IConstellation> required = new HashSet<>(requiredOuterConstellations);
+        for (TileCollectorCrystal crystal : getOuterActiveCrystals(altar)) {
+            IConstellation crystalConstellation = getCrystalConstellation(crystal);
+            if (crystalConstellation != null && required.contains(crystalConstellation)) {
+                continue;
+            }
+
+            BlockPos pos = crystal.getPos();
+            if (world.isBlockLoaded(pos)) {
+                world.destroyBlock(pos, false);
+            }
+        }
+    }
+
+    public static boolean isCrystalActive(@Nullable TileCollectorCrystal crystal) {
+        if (crystal == null) {
+            return false;
+        }
+
+        NBTTagCompound data = crystal.getTileData();
+        if (!data.hasKey(activeTAG, Constants.NBT.TAG_BYTE)) {
+            data.setBoolean(activeTAG, false);
+        }
+
+        return data.getBoolean(activeTAG);
+    }
+
+    public static void setCrystalActive(@Nullable TileCollectorCrystal crystal, boolean active) {
+        if (crystal == null) {
+            return;
+        }
+
+        NBTTagCompound data = crystal.getTileData();
+
+        data.setBoolean(activeTAG, active);
+        crystal.markDirty();
+    }
+
+    @Nullable
+    private static IConstellation getCrystalConstellation(@Nullable TileCollectorCrystal crystal) {
+        return crystal == null ? null : crystal.getConstellation();
+    }
+
+    private static List<IConstellation> getCrystalConstellations(List<TileCollectorCrystal> crystals) {
+        return crystals.stream().map(GodRecipe::getCrystalConstellation).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    @Nullable
+    public static TileGodAltar findOuterConstellationAltar(@Nullable TileCollectorCrystal crystal) {
+        if (crystal == null) {
+            return null;
+        }
+
+        for (BlockPos offset : outerCrystalOffsets) {
+            TileGodAltar altar = MiscUtils.getTileAt(crystal.getWorld(), crystal.getPos().subtract(offset), TileGodAltar.class, true);
+            if (altar != null) {
+                return altar;
+            }
+        }
+
+        return null;
+    }
+    
+    public static boolean isCrafting(@Nullable TileGodAltar godAltar) {
+        if (godAltar == null) {
+            return false;
+        }
+
+        return godAltar.getAddedActiveCraftingTask() != null && !godAltar.getAddedActiveCraftingTask().isFinished();
+    }
+
+    private List<TileCollectorCrystal> getOuterActiveCrystals(TileGodAltar altar) {
+        List<TileCollectorCrystal> active = new ArrayList<>();
+        if (requiredOuterConstellations.isEmpty()) {
+            return active;
+        }
+
+        for (TileCollectorCrystal crystal : findCrystals(altar)) {
+            if (!isCrystalActive(crystal)) {
+                continue;
+            }
+
+            active.add(crystal);
+        }
+
+        return active;
+    }
+
+    private void clearOuterConstellationCrystals(TileGodAltar altar) {
+        for (TileCollectorCrystal crystal : findCrystals(altar)) {
+            setCrystalActive(crystal, false);
+        }
     }
 
     @Override
     public boolean tryProcess(TileGodAltar altar, NBTTagCompound craftingData, int activeCraftingTick, int totalCraftingTime) {
         return tryProcess(altar, null, craftingData, activeCraftingTick, totalCraftingTime);
-//        return tryProcess(altar, new ActiveCraftingTask(abstractAltarRecipe, abstractAltarRecipe.craftingTickTime(), craftingTask.getPlayerCraftingUUID()), craftingData, activeCraftingTick, totalCraftingTime);
     }
 
     //重写
@@ -652,6 +849,20 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     }
 
     @Override
+    public void onCraftServerFinish(TileGodAltar altar, Random rand) {
+        super.onCraftServerFinish(altar, rand);
+        clearOuterConstellationCrystals(altar);
+        chaliceSearchCaches.remove(getAltarCacheKey(altar));
+    }
+
+    @Override
+    public void onCraftServerAbort(TileGodAltar altar, Random rand) {
+        super.onCraftServerAbort(altar, rand);
+        clearOuterConstellationCrystals(altar);
+        chaliceSearchCaches.remove(getAltarCacheKey(altar));
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public void onCraftClientTick(TileGodAltar altar, AddedActiveCraftingTask.CraftingState state, long tick, Random rand) {
         super.onCraftClientTick(altar, state, tick, rand);
@@ -735,6 +946,8 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
                     }
                 }
             }
+
+            spawnOuterConstellationGuideBeams(altar, act.getTicksCrafting());
         }
 
         if(state == AddedActiveCraftingTask.CraftingState.ACTIVE) {
@@ -775,6 +988,150 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         }
     }
 
+    @SideOnly(Side.CLIENT)
+    private void spawnOuterConstellationGuideBeams(TileGodAltar altar, int craftTick) {
+        if (requiredOuterConstellations.isEmpty()) {
+            return;
+        }
+        if (craftTick < constellationBegin) {
+            return;
+        }
+        if (ClientScheduler.getClientTick() % 12 != 0) {
+            return;
+        }
+
+        Vector3 source = new Vector3(altar).add(0.5, 8.3, 0.5);
+        for (BlockPos offset : outerCrystalOffsets) {
+            TileCollectorCrystal crystal = MiscUtils.getTileAt(altar.getWorld(), altar.getPos().add(offset), TileCollectorCrystal.class, true);
+            if (crystal == null) {
+                continue;
+            }
+
+            Vector3 target = new Vector3(crystal).add(0.5, 0.6, 0.5);
+            EffectLightbeam beam = EffectHandler.getInstance().lightbeam(target, source, 0.50);
+            beam.setColorOverlay(isCelestial(crystal) ? new Color(25,25,112) : new Color(135,206,235));
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void renderOuterLiquidStarlightGuideMultiblock(TileGodAltar altar, int craftTick, long renderTick, double renderX, double renderY, double renderZ, float partialTicks) {
+        String key = altar.getWorld().provider.getDimension() + ":" + altar.getPos().toLong();
+        OuterLiquidGuideRenderState state = outerLiquidGuideRenderStates.computeIfAbsent(key, k -> new OuterLiquidGuideRenderState());
+
+        long nowTick = ClientScheduler.getClientTick();
+        if (state.lastTick != nowTick) {
+            int fluidNow = altar.getFluidAmount();
+            boolean inLiquidWindow = craftTick >= liquidStarlightBegin && craftTick <= liquidStarlightEnd;
+            boolean needsLiquid = requiredLiquidStarlight > 0 && fluidNow < requiredLiquidStarlight;
+            boolean inputIncreased = state.lastFluidAmount >= 0 && fluidNow > state.lastFluidAmount;
+            boolean inputStopped = inLiquidWindow && needsLiquid && !inputIncreased;
+
+            state.prevAlpha = state.alpha;
+            if (inputIncreased || !inLiquidWindow || !needsLiquid) {
+                state.waitingForDelay = false;
+                state.stopStartTick = -1L;
+            } else if (inputStopped) {
+                if (!state.waitingForDelay) {
+                    state.waitingForDelay = true;
+                    state.stopStartTick = nowTick;
+                }
+            }
+
+            boolean readyToShow = state.waitingForDelay && state.stopStartTick >= 0L && (nowTick - state.stopStartTick) >= liquidGuideDelayTicks;
+            if (readyToShow && !state.showing) {
+                // Lock the render Y for this visible cycle to avoid pop-up while fading.
+                state.showing = true;
+                state.lockedLiftY = fluidNow > 0 ? 1.0D : 0.0D;
+            }
+             float targetAlpha = readyToShow ? liquidGuideMaxAlpha : 0F;
+             float step = readyToShow ? liquidGuideFadeInStep : liquidGuideFadeOutStep;
+             if (state.alpha < targetAlpha) {
+                 state.alpha = Math.min(targetAlpha, state.alpha + step);
+             } else if (state.alpha > targetAlpha) {
+                 state.alpha = Math.max(targetAlpha, state.alpha - step);
+             }
+            if (!readyToShow && state.alpha <= 0.001F) {
+                state.showing = false;
+                state.lockedLiftY = 0.0D;
+            }
+
+             if (!inLiquidWindow && state.alpha <= 0.001F) {
+                 outerLiquidGuideRenderStates.remove(key);
+                 return;
+             }
+
+            state.lastFluidAmount = fluidNow;
+            state.lastTick = nowTick;
+        }
+
+        if (renderTick >= 0 || state.alpha <= 0.001F) {
+            return;
+        }
+
+        float alpha = MathHelper.clamp(state.prevAlpha + (state.alpha - state.prevAlpha) * partialTicks, 0F, liquidGuideMaxAlpha);
+        if (alpha <= 0.001F) {
+            return;
+        }
+
+        LiquidGuidePatternMetrics metrics = getLiquidGuidePatternMetrics();
+        if (metrics.pattern.isEmpty()) {
+            return;
+        }
+
+        double angle = ((ClientScheduler.getClientTick() + partialTicks) / 20.0F) * (180F / (float) Math.PI);
+        Tessellator tes = Tessellator.getInstance();
+        BufferBuilder vb = tes.getBuffer();
+
+        float prevLightX = OpenGlHelper.lastBrightnessX;
+        float prevLightY = OpenGlHelper.lastBrightnessY;
+        int prevAO = Minecraft.getMinecraft().gameSettings.ambientOcclusion;
+        int prevShadeModel = GL11.glGetInteger(GL11.GL_SHADE_MODEL);
+
+         GlStateManager.pushMatrix();
+        GlStateManager.translate(renderX + 0.5D, renderY + 1.5D + state.lockedLiftY, renderZ + 0.5D);
+         GlStateManager.rotate((float) angle, 0F, 1F, 0F);
+         GlStateManager.scale(metrics.scale, metrics.scale, metrics.scale);
+         GlStateManager.translate(-metrics.centerX, -metrics.centerY, -metrics.centerZ);
+         GlStateManager.disableLighting();
+         GlStateManager.enableBlend();
+         GlStateManager.disableCull();
+
+        GL14.glBlendColor(1F, 1F, 1F, alpha);
+        GlStateManager.blendFunc(GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA);
+        Minecraft.getMinecraft().gameSettings.ambientOcclusion = 0;
+        GlStateManager.shadeModel(GL11.GL_FLAT);
+        TextureHelper.setActiveTextureToAtlasSprite();
+
+        for (Map.Entry<BlockPos, BlockArray.BlockInformation> entry : metrics.pattern.entrySet()) {
+            BlockPos offset = entry.getKey();
+            IBlockState blockState = entry.getValue().state;
+
+            vb.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(offset.getX(), offset.getY(), offset.getZ());
+            RenderingUtils.renderBlockSafely(liquidGuideAirWorld, BlockPos.ORIGIN, blockState, vb);
+            tes.draw();
+            GlStateManager.popMatrix();
+        }
+
+        IBlockState chalice = BlocksAS.blockChalice.getDefaultState();
+        vb.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+        GlStateManager.pushMatrix();
+        RenderingUtils.renderBlockSafely(liquidGuideAirWorld, BlockPos.ORIGIN, chalice, vb);
+        tes.draw();
+        GlStateManager.popMatrix();
+
+        GlStateManager.enableLighting();
+        GlStateManager.enableCull();
+        GlStateManager.disableBlend();
+        GL14.glBlendColor(1F, 1F, 1F, 1F);
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, prevLightX, prevLightY);
+        Minecraft.getMinecraft().gameSettings.ambientOcclusion = prevAO;
+        GlStateManager.shadeModel(prevShadeModel);
+        GlStateManager.popMatrix();
+        TextureHelper.refreshTextureBindState();
+    }
+
     @Override
     @SideOnly(Side.CLIENT)
     public void onCraftTESRRender(TileGodAltar altar, double x, double y, double z, float partialTicks) {
@@ -805,7 +1162,127 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
                 }
             }
 
+            renderActiveOuterConstellations(altar, partialTicks);
+            renderOuterLiquidStarlightGuideMultiblock(altar, act.getTicksCrafting(), -1L, x, y, z, partialTicks);
             renderRisingStarlightItemModel(x, y, z, partialTicks, act.getTicksCrafting(), act.getTotalCraftingTime(), altar);
+        }
+    }
+
+    private boolean isCelestial(TileCollectorCrystal tileCollectorCrystal) {
+        return tileCollectorCrystal.getType() == BlockCollectorCrystal.CollectorCrystalType.CELESTIAL_CRYSTAL;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void renderActiveOuterConstellations(TileGodAltar altar, float partialTicks) {
+        List<TileCollectorCrystal> crystals = findCrystals(altar);
+        if (crystals.isEmpty() && outerConstellationRenderStates.isEmpty()) {
+            return;
+        }
+
+        final double constellationScale = 0.08D;
+        final double lineSizeScale = 0.3D;
+        final double starSizeScale = 5D;
+        final double depthSizeScale = 0.55D;
+
+        float alphaDaytime = ConstellationSkyHandler.getInstance().getCurrentDaytimeDistribution(altar.getWorld()) * 0.8F;
+        int max = 5000;
+        int tick = (int) (ClientScheduler.getClientTick() % max);
+        float halfAge = max / 2F;
+        float tr = 1F - (Math.abs(halfAge - tick) / halfAge);
+        tr *= 2;
+
+        Set<String> touchedKeys = new HashSet<>();
+        for (TileCollectorCrystal crystal : crystals) {
+            IConstellation constellation = getCrystalConstellation(crystal);
+            if (constellation == null) {
+                continue;
+            }
+
+            String key = getOuterConstellationStateKey(crystal);
+            touchedKeys.add(key);
+            float animProgress = updateOuterConstellationAnimProgress(key, isCrystalActive(crystal));
+            if (animProgress <= 0.001F) {
+                continue;
+            }
+
+            double renderX = crystal.getPos().getX() + 0.5;
+            double renderY = crystal.getPos().getY() + 0.5 + (1.05 - 0.5) * animProgress;
+            double renderZ = crystal.getPos().getZ() + 0.5;
+
+            float animatedSize = (1.35F + tr * 0.25F) * animProgress;
+            double animatedConstellationScale = constellationScale * animProgress;
+            double animatedLineSizeScale = lineSizeScale * animProgress;
+            double animatedStarSizeScale = starSizeScale * animProgress;
+            double animatedDepthSizeScale = depthSizeScale * animProgress;
+
+            GL11.glPushMatrix();
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            RenderingUtils.removeStandartTranslationFromTESRMatrix(partialTicks);
+            AARenderConstellation.renderConstellationIntoWorld3D(
+                    constellation,
+                    constellation.getConstellationColor(),
+                    new Vector3(renderX, renderY, renderZ),
+                    animatedSize,
+                    animatedConstellationScale,
+                    animatedLineSizeScale,
+                    animatedStarSizeScale,
+                    animatedDepthSizeScale,
+                    new RenderConstellation.BrightnessFunction() {
+                        @Override
+                        public float getBrightness() {
+                            return 0.3F;
+                        }
+                    }
+            );
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+        }
+
+        cleanupOuterConstellationRenderStates(altar, touchedKeys);
+    }
+
+    @SideOnly(Side.CLIENT)
+    private String getOuterConstellationStateKey(TileCollectorCrystal crystal) {
+        return crystal.getWorld().provider.getDimension() + ":" + crystal.getPos().toLong();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private float updateOuterConstellationAnimProgress(String key, boolean active) {
+        OuterConstellationRenderState state = outerConstellationRenderStates.computeIfAbsent(key, k -> new OuterConstellationRenderState());
+        long nowTick = ClientScheduler.getClientTick();
+        long deltaTick = state.lastTick < 0 ? 1 : Math.max(1L, nowTick - state.lastTick);
+        state.lastTick = nowTick;
+
+        float direction = active ? 1F : -1F;
+        float speed = 0.125F;
+        state.progress = MathHelper.clamp(state.progress + direction * speed * deltaTick, 0F, 1F);
+        return state.progress;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void cleanupOuterConstellationRenderStates(TileGodAltar altar, Set<String> touchedKeys) {
+        if (outerConstellationRenderStates.isEmpty()) {
+            return;
+        }
+
+        List<String> cleanupKeys = new ArrayList<>(outerCrystalOffsets.length);
+        int dim = altar.getWorld().provider.getDimension();
+        for (BlockPos offset : outerCrystalOffsets) {
+            cleanupKeys.add(dim + ":" + altar.getPos().add(offset).toLong());
+        }
+
+        for (String key : cleanupKeys) {
+            if (touchedKeys.contains(key)) {
+                continue;
+            }
+
+            OuterConstellationRenderState state = outerConstellationRenderStates.get(key);
+            if (state == null) {
+                continue;
+            }
+            if (state.progress <= 0.001F) {
+                outerConstellationRenderStates.remove(key);
+            }
         }
     }
 
@@ -886,6 +1363,13 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             }
         }
 
+        float targetClipHeight = this.requiredLiquidStarlight <= 0 ? 0F : (float) altar.getFluidAmount() / this.requiredLiquidStarlight;
+        float clipHeight = getAnimatedRisingClipHeight(altar, targetClipHeight, partialTicks);
+
+        if (clipHeight <= 0.0F) {
+            return;
+        }
+
         GlStateManager.pushMatrix();
         GlStateManager.translate(x + 0.5, y + 1.2, z + 0.5);
 
@@ -905,18 +1389,6 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
         Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 
-        float clipHeight = (float) altar.getFluidAmount() / this.liquidStarlightRequired;
-
-        if (clipHeight <= 0.0F) {
-            GL11.glDisable(GL11.GL_CLIP_PLANE0);
-            GlStateManager.enableCull();
-            GlStateManager.disableBlend();
-            GlStateManager.enableLighting();
-            GlStateManager.alphaFunc(GL11.GL_GREATER, 0.1F);
-            Blending.DEFAULT.applyStateManager();
-            GlStateManager.popMatrix();
-            return;
-        }
 
         if (clipHeight > 0) {
 
@@ -928,7 +1400,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             }
             boolean useStencil = wantStencil && setupStencilMask(bakedModel, stack, builtIn, modelState);
             Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-            GlStateManager.depthMask(false);
+//            GlStateManager.depthMask(false);
             GlStateManager.enablePolygonOffset();
             GlStateManager.doPolygonOffset(-1.0F, -1.0F);
             if (builtIn && !hasQuads) {
@@ -938,7 +1410,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             }
             GlStateManager.doPolygonOffset(0.0F, 0.0F);
             GlStateManager.disablePolygonOffset();
-            GlStateManager.depthMask(true);
+//            GlStateManager.depthMask(true);
             if (useStencil) {
                 GL11.glDisable(GL11.GL_STENCIL_TEST);
                 GL11.glStencilMask(0xFF);
@@ -1205,6 +1677,30 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         GL11.glEnable(GL11.GL_CLIP_PLANE0);
     }
 
+    @SideOnly(Side.CLIENT)
+    private float getAnimatedRisingClipHeight(TileGodAltar altar, float targetClipHeight, float partialTicks) {
+        String key = getAltarCacheKey(altar);
+        RisingClipRenderState state = risingClipRenderStates.computeIfAbsent(key, k -> new RisingClipRenderState());
+        long nowTick = ClientScheduler.getClientTick();
+        long deltaTick = state.lastTick < 0 ? 1L : Math.max(1L, nowTick - state.lastTick);
+        state.lastTick = nowTick;
+
+        targetClipHeight = MathHelper.clamp(targetClipHeight, 0F, 1F);
+        state.prevClipHeight = state.clipHeight;
+        if (targetClipHeight > state.clipHeight) {
+            state.clipHeight = Math.min(targetClipHeight, state.clipHeight + risingClipIncreasePerTick * deltaTick);
+        } else {
+            // Keep falling behavior responsive; only smooth the rising edge.
+            state.clipHeight = targetClipHeight;
+        }
+
+        float interpolated = state.prevClipHeight + (state.clipHeight - state.prevClipHeight) * MathHelper.clamp(partialTicks, 0F, 1F);
+        if (targetClipHeight <= 0.001F && interpolated <= 0.001F) {
+            risingClipRenderStates.remove(key);
+        }
+        return MathHelper.clamp(interpolated, 0F, 1F);
+    }
+
     @Nullable
     protected BlockPos findUnusedRelay(TileGodAltar center, List<CraftingFocusStack> found) {
         List<BlockPos> eligableRelayOffsets = Lists.newLinkedList();
@@ -1230,30 +1726,111 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
     @Nullable
     protected TileChalice findChalice(TileGodAltar center, int liquidStarlightRequired) {
-        List<TileChalice> chaliceOffsets = Lists.newLinkedList();
-        for (int xx = -15; xx <= 15; xx++) {
-            for (int zz = -15; zz <= 15; zz++) {
-                for (int yy = -5; yy <= 5; yy++) {
-                    if (xx <= 6 && zz <= 6) continue; // 太近了
+        String key = getAltarCacheKey(center);
+        ChaliceSearchCache cache = chaliceSearchCaches.computeIfAbsent(key, k -> new ChaliceSearchCache());
+        long nowTick = center.getWorld().getTotalWorldTime();
 
-                    BlockPos offset = new BlockPos(xx, yy, zz);
-                    TileChalice tar = MiscUtils.getTileAt(center.getWorld(), center.getPos().add(offset), TileChalice.class, true);
-                    if (tar != null) {
-                        // 是星能液且数量够一次的抽取量
-                        if (tar.getFluidAmount() >= liquidStarlightRequired &&
-                                tar.getHeldFluid() == BlocksAS.fluidLiquidStarlight) {
-                            MultiblockContainmentChalice m = new MultiblockContainmentChalice();
-                            if (m.matches(center.getWorld(), center.getPos().add(offset)))
-                                chaliceOffsets.add(tar);
-                        }
-                    }
-                }
-            }
+        if (cache.shouldStartScan(nowTick)) {
+            cache.beginScan(center.isPatternAltarGod2Active() ? 8 : 6);
         }
-        if(chaliceOffsets.size() <= 0) {
+
+        if (cache.scanning) {
+            scanChalicesStep(center, cache, chaliceScanBudgetPerTick);
+        }
+
+        List<TileChalice> valid = getValidChalicesFromCache(center, cache, liquidStarlightRequired);
+        if(valid.isEmpty()) {
             return null;
         }
-        return chaliceOffsets.get(center.getWorld().rand.nextInt(chaliceOffsets.size()));
+        return valid.get(center.getWorld().rand.nextInt(valid.size()));
+    }
+
+    private void scanChalicesStep(TileGodAltar center, ChaliceSearchCache cache, int budget) {
+        if (!cache.scanning || budget <= 0) {
+            return;
+        }
+
+        BlockPos base = center.getPos();
+        MultiblockContainmentChalice multiblock = new MultiblockContainmentChalice();
+        while (budget-- > 0 && cache.scanning) {
+            int xx = cache.scanX;
+            int yy = cache.scanY;
+            int zz = cache.scanZ;
+
+            cache.advanceCursor();
+
+            if (xx <= cache.closeRange && zz <= cache.closeRange) {
+                continue; // 太近了
+            }
+
+            BlockPos pos = base.add(xx, yy, zz);
+            TileChalice chalice = MiscUtils.getTileAt(center.getWorld(), pos, TileChalice.class, true);
+            if (chalice == null || chalice.getHeldFluid() != BlocksAS.fluidLiquidStarlight) {
+                continue;
+            }
+            if (multiblock.matches(center.getWorld(), pos)) {
+                cache.candidates.add(pos);
+            }
+        }
+
+        if (!cache.scanning) {
+            cache.lastScanTick = center.getWorld().getTotalWorldTime();
+        }
+    }
+
+    private List<TileChalice> getValidChalicesFromCache(TileGodAltar center, ChaliceSearchCache cache, int needed) {
+        List<TileChalice> valid = new ArrayList<>();
+        Iterator<BlockPos> iterator = cache.candidates.iterator();
+        while (iterator.hasNext()) {
+            BlockPos pos = iterator.next();
+            TileChalice chalice = MiscUtils.getTileAt(center.getWorld(), pos, TileChalice.class, true);
+            if (chalice == null || chalice.getHeldFluid() != BlocksAS.fluidLiquidStarlight) {
+                iterator.remove();
+                continue;
+            }
+            if (chalice.getFluidAmount() >= needed) {
+                valid.add(chalice);
+            }
+        }
+        return valid;
+    }
+
+    private String getAltarCacheKey(TileGodAltar altar) {
+        return altar.getWorld().provider.getDimension() + ":" + altar.getPos().toLong();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static LiquidGuidePatternMetrics getLiquidGuidePatternMetrics() {
+        if (liquidGuidePatternMetrics != null) {
+            return liquidGuidePatternMetrics;
+        }
+
+        Map<BlockPos, BlockArray.BlockInformation> pattern = liquidGuidePattern.getPattern();
+        int minX = 0, minY = 0, minZ = 0;
+        int maxX = 0, maxY = 0, maxZ = 0;
+        for (BlockPos p : pattern.keySet()) {
+            minX = Math.min(minX, p.getX());
+            minY = Math.min(minY, p.getY());
+            minZ = Math.min(minZ, p.getZ());
+            maxX = Math.max(maxX, p.getX());
+            maxY = Math.max(maxY, p.getY());
+            maxZ = Math.max(maxZ, p.getZ());
+        }
+
+        int sizeX = maxX - minX + 1;
+        int sizeY = maxY - minY + 1;
+        int sizeZ = maxZ - minZ + 1;
+        float sizeMax = Math.max(1F, Math.max(sizeX, Math.max(sizeY, sizeZ)));
+        float scale = 0.92F / sizeMax;
+
+        liquidGuidePatternMetrics = new LiquidGuidePatternMetrics(
+                pattern,
+                (minX + maxX + 1) / 2D,
+                (minY + maxY + 1) / 2D,
+                (minZ + maxZ + 1) / 2D,
+                scale
+        );
+        return liquidGuidePatternMetrics;
     }
 
     protected boolean matchFocusStacks(TileGodAltar altar, List<CraftingFocusStack> stacks) {
@@ -1340,6 +1917,139 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             return slotId;
         }
 
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static class OuterConstellationRenderState {
+        private float progress = 0F;
+        private long lastTick = -1L;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static class OuterLiquidGuideRenderState {
+        private int lastFluidAmount = -1;
+        private long stopStartTick = -1L;
+        private boolean waitingForDelay = false;
+        private boolean showing = false;
+        private double lockedLiftY = 0.0D;
+        private float alpha = 0F;
+        private float prevAlpha = 0F;
+        private long lastTick = Long.MIN_VALUE;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static class RisingClipRenderState {
+        private float clipHeight = 0F;
+        private float prevClipHeight = 0F;
+        private long lastTick = -1L;
+    }
+
+    private static class ChaliceSearchCache {
+        private long lastScanTick = Long.MIN_VALUE;
+        private final List<BlockPos> candidates = new ArrayList<>();
+        private boolean scanning = false;
+        private int scanX = -chaliceScanRangeXZ;
+        private int scanY = -chaliceScanRangeY;
+        private int scanZ = -chaliceScanRangeXZ;
+        private int closeRange = 6;
+
+        private boolean shouldStartScan(long nowTick) {
+            return !scanning && (nowTick - lastScanTick >= chaliceRescanIntervalTicks || candidates.isEmpty());
+        }
+
+        private void beginScan(int closeRange) {
+            this.candidates.clear();
+            this.closeRange = closeRange;
+            this.scanX = -chaliceScanRangeXZ;
+            this.scanY = -chaliceScanRangeY;
+            this.scanZ = -chaliceScanRangeXZ;
+            this.scanning = true;
+        }
+
+        private void advanceCursor() {
+            scanY++;
+            if (scanY > chaliceScanRangeY) {
+                scanY = -chaliceScanRangeY;
+                scanZ++;
+                if (scanZ > chaliceScanRangeXZ) {
+                    scanZ = -chaliceScanRangeXZ;
+                    scanX++;
+                    if (scanX > chaliceScanRangeXZ) {
+                        scanning = false;
+                    }
+                }
+            }
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static class LiquidGuidePatternMetrics {
+        private final Map<BlockPos, BlockArray.BlockInformation> pattern;
+        private final double centerX;
+        private final double centerY;
+        private final double centerZ;
+        private final float scale;
+
+        private LiquidGuidePatternMetrics(Map<BlockPos, BlockArray.BlockInformation> pattern, double centerX, double centerY, double centerZ, float scale) {
+            this.pattern = pattern;
+            this.centerX = centerX;
+            this.centerY = centerY;
+            this.centerZ = centerZ;
+            this.scale = scale;
+        }
+    }
+
+    public static class WorldBlockArrayRenderAccess implements IBlockAccess {
+
+        private WorldBlockArrayRenderAccess() {
+        }
+
+
+        @Nullable
+        @Override
+        public TileEntity getTileEntity(BlockPos pos) {
+            return null;
+        }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public int getCombinedLight(BlockPos pos, int lightValue) {
+            return 0;
+        }
+
+        @Override
+        public IBlockState getBlockState(BlockPos pos) {
+            return Blocks.AIR.getDefaultState();
+        }
+
+        @Override
+        public boolean isAirBlock(BlockPos pos) {
+            return true;
+        }
+
+        @Nonnull
+        @Override
+        @SideOnly(Side.CLIENT)
+        public Biome getBiome(BlockPos pos) {
+            return Biomes.PLAINS;
+        }
+
+        @Override
+        public int getStrongPower(BlockPos pos, EnumFacing direction) {
+            return 0;
+        }
+
+        @Nonnull
+        @Override
+        @SideOnly(Side.CLIENT)
+        public WorldType getWorldType() {
+            return Minecraft.getMinecraft().world.getWorldType();
+        }
+
+        @Override
+        public boolean isSideSolid(BlockPos pos, EnumFacing side, boolean _default) {
+            return _default;
+        }
     }
 
 }

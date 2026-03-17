@@ -98,10 +98,11 @@ public class RenderAltarGod extends TileEntitySpecialRenderer<TileGodAltar> {
                     }
                 }
                 RenderingUtils.renderLightRayEffects(0, 0.5, 0, Color.BLUE, 0, ClientScheduler.getClientTick(), 15, 2F, 40, 25);
-            } else {
-                RenderingUtils.renderLightRayEffects(0, 0.5, 0, Color.BLUE, 0x12315661L, ClientScheduler.getClientTick(), 20, 2F, 50, 25);
-                RenderingUtils.renderLightRayEffects(0, 0.5, 0, Color.MAGENTA, 0, ClientScheduler.getClientTick(), 10, 1F, 40, 25);
             }
+
+            RenderingUtils.renderLightRayEffects(0, 0.5, 0, Color.BLUE, 0x12315661L, ClientScheduler.getClientTick(), 20, 2F, 50, 25);
+            RenderingUtils.renderLightRayEffects(0, 0.5, 0, Color.MAGENTA, 0, ClientScheduler.getClientTick(), 10, 1F, 40, 25);
+
             GlStateManager.translate(0, 0.15, 0);
             GlStateManager.scale(0.7, 0.7, 0.7);
             TESRCollectorCrystal.renderCrystal(null, true, true);
