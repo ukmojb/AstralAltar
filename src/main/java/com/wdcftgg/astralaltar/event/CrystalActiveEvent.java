@@ -4,6 +4,7 @@ package com.wdcftgg.astralaltar.event;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.crafting.AddedActiveCraftingTask;
 import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
+import com.wdcftgg.astralaltar.init.ModSounds;
 import hellfirepvp.astralsorcery.common.item.tool.wand.ItemWand;
 import hellfirepvp.astralsorcery.common.tile.network.TileCollectorCrystal;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
@@ -12,6 +13,9 @@ import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -33,11 +37,19 @@ public class CrystalActiveEvent {
             if (GodRecipe.isCrafting(godAltar)) {
                 AddedActiveCraftingTask task = godAltar.getAddedActiveCraftingTask();
                 if (task != null) {
-                    int time = task.getTotalCraftingTime();
+                    int time = task.getTicksCrafting();
+                    World world = event.getWorld();
+                    BlockPos pos = crystal.getPos();
                     if (time >= GodRecipe.constellationBegin && time <= GodRecipe.constellationEnd) {
                         if (!player.world.isRemote) {
-                            GodRecipe.setCrystalActive(crystal, !GodRecipe.isCrystalActive(crystal));
+//                            GodRecipe.setCrystalActive(crystal, !GodRecipe.isCrystalActive(crystal));
+                            GodRecipe.setCrystalActive(crystal, true);
+
+                            int num = GodRecipe.getOuterActiveCrystals(godAltar).size() - 1;
+                            System.out.println(num);
+                            world.playSound(null, pos, GodRecipe.soundEvents[num], SoundCategory.BLOCKS, 1f, 1f);
                         } else {
+
                             player.swingArm(EnumHand.MAIN_HAND);
                         }
                     }

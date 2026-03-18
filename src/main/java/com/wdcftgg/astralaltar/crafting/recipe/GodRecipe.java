@@ -2,6 +2,7 @@ package com.wdcftgg.astralaltar.crafting.recipe;
 
 import com.google.common.collect.Lists;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
+import com.wdcftgg.astralaltar.init.ModSounds;
 import com.wdcftgg.astralaltar.util.AARenderConstellation;
 import com.wdcftgg.astralaltar.crafting.AddedAbstractAltarRecipe;
 import com.wdcftgg.astralaltar.crafting.AddedActiveCraftingTask;
@@ -60,10 +61,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3i;
@@ -105,6 +103,12 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             new BlockPos(-3, 6, 3),
             new BlockPos(3, 6, -3),
             new BlockPos(3, 6, 3)
+    };
+    public static final SoundEvent[] soundEvents = new SoundEvent[] {
+            ModSounds.oneLineC,
+            ModSounds.oneLineD,
+            ModSounds.oneLineE,
+            ModSounds.oneLineF,
     };
     public static final int constellationBegin = 500;
     public static final int constellationEnd = 600;
@@ -148,7 +152,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
     private IConstellation requiredConstellation = null;
 
-    private List<IConstellation> requiredOuterConstellations = new ArrayList<>(4);
+    private static List<IConstellation> requiredOuterConstellations = new ArrayList<>(4);
 
     private Map<TraitRecipeSlot, ItemHandle> matchTraitStacks = new HashMap<>();
 
@@ -638,7 +642,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         return true;
     }
 
-    private List<TileCollectorCrystal> findCrystals(TileGodAltar altar) {
+    private static List<TileCollectorCrystal> findCrystals(TileGodAltar altar) {
         List<TileCollectorCrystal> crystals = new ArrayList<>();
         for (BlockPos offset : outerCrystalOffsets) {
             TileCollectorCrystal crystal = MiscUtils.getTileAt(altar.getWorld(), altar.getPos().add(offset), TileCollectorCrystal.class, true);
@@ -727,7 +731,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         return godAltar.getAddedActiveCraftingTask() != null && !godAltar.getAddedActiveCraftingTask().isFinished();
     }
 
-    private List<TileCollectorCrystal> getOuterActiveCrystals(TileGodAltar altar) {
+    public static List<TileCollectorCrystal> getOuterActiveCrystals(TileGodAltar altar) {
         List<TileCollectorCrystal> active = new ArrayList<>();
         if (requiredOuterConstellations.isEmpty()) {
             return active;

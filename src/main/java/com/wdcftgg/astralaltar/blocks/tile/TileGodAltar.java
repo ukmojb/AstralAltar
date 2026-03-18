@@ -450,7 +450,7 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
                     return;
                 }
             }
-
+            this.tank.setFluid((Fluid)null);
             this.findRecipe(player);
         }
 

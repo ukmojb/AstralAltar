@@ -1,6 +1,7 @@
 package com.wdcftgg.astralaltar.init;
 
 
+import com.wdcftgg.astralaltar.AstralAltar;
 import com.wdcftgg.astralaltar.blocks.ModBlocks;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.items.ModItems;
@@ -28,19 +29,11 @@ public class RegistryHandler {
 	@SubscribeEvent
 	public static void onItemRegister(RegistryEvent.Register<Item> event)
 	{
-//
-//		for (Item item : ModItems.ITEMS.toArray(new Item[0])){
-//			item.setTranslationKey(MODID + "." + item.getTranslationKey().replace("item.", ""));
-//		}
-//
 		event.getRegistry().registerAll(ModItems.ITEMS.toArray(new Item[0]));
 	}
 	
 	@SubscribeEvent
 	public static void onBlockRegister(RegistryEvent.Register<Block> event) {
-//		for (Block block : ModBlocks.BLOCKS.toArray(new Block[0])){
-//			block.setTranslationKey(MODID + "." + block.getTranslationKey().replace("tile.", ""));
-//		}
 		event.getRegistry().registerAll(ModBlocks.BLOCKS.toArray(new Block[0]));
 	}
 
@@ -93,19 +86,24 @@ public class RegistryHandler {
 	@SubscribeEvent
 	public static void onRegisterSoundEvents(RegistryEvent.Register<SoundEvent> event)
 	{
-//		ResourceLocation location3 = new ResourceLocation(SpaceTime.MODID, "fallsword");
-//
-//		ModSounds.FALLSWORD = new SoundEvent(location3).setRegistryName(location3);
-//
-//		event.getRegistry().register(ModSounds.FALLSWORD);
-	}
-
-	private static Item newItemBlock(Block block){
-		return new ItemBlock(block).setRegistryName(block.getRegistryName()).setTranslationKey(block.getTranslationKey());
+        ModSounds.oneLineC = registerSound(event, "one-lineC");
+        ModSounds.oneLineD = registerSound(event, "one-lineD");
+        ModSounds.oneLineE = registerSound(event, "one-lineE");
+        ModSounds.oneLineF = registerSound(event, "one-lineF");
 	}
 
 	public static void registerTileEntity() {
 
 		GameRegistry.registerTileEntity(TileGodAltar.class, new ResourceLocation(MODID, "GodAltarEntity"));
+	}
+
+	private static SoundEvent registerSound(RegistryEvent.Register<SoundEvent> event, String fileName) {
+		ResourceLocation location = new ResourceLocation(AstralAltar.MODID, fileName);
+
+		SoundEvent soundEvent = new SoundEvent(location).setRegistryName(location);
+
+		event.getRegistry().register(soundEvent);
+
+        return soundEvent;
 	}
 }

@@ -1,0 +1,42 @@
+{
+  "one-lineC":
+  {
+    "category": "record",
+    "sounds": [
+      {
+        "name" : "astralaltar:one-linec",
+        "stream" : true
+      }
+    ]
+  },
+  "one-lineD":
+  {
+    "category": "record",
+    "sounds": [
+      {
+        "name" : "astralaltar:one-lined",
+        "stream" : true
+      }
+    ]
+  },
+  "one-lineE":
+  {
+    "category": "record",
+    "sounds": [
+      {
+        "name" : "astralaltar:one-linee",
+        "stream" : true
+      }
+    ]
+  },
+  "one-lineF":
+  {
+    "category": "record",
+    "sounds": [
+      {
+        "name" : "astralaltar:one-linef",
+        "stream" : true
+      }
+    ]
+  }
+}
