@@ -1,13 +1,14 @@
-package com.wdcftgg.astralaltar.crafting.recipe;
+package com.wdcftgg.astralaltar.crafting.altar;
 
 import com.google.common.collect.Lists;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
-import com.wdcftgg.astralaltar.init.ModSounds;
-import com.wdcftgg.astralaltar.util.AARenderConstellation;
+import com.wdcftgg.astralaltar.cilent.render.BakedQuadRetextured;
 import com.wdcftgg.astralaltar.crafting.AddedAbstractAltarRecipe;
 import com.wdcftgg.astralaltar.crafting.AddedActiveCraftingTask;
 import com.wdcftgg.astralaltar.crafting.IAddedCraftingProgress;
+import com.wdcftgg.astralaltar.init.ModSounds;
 import com.wdcftgg.astralaltar.init.multiblock.MultiblockContainmentChalice;
+import com.wdcftgg.astralaltar.util.AARenderConstellation;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.effect.EffectHandler;
 import hellfirepvp.astralsorcery.client.effect.EffectHelper;
@@ -29,6 +30,7 @@ import hellfirepvp.astralsorcery.common.crafting.helper.AccessibleRecipe;
 import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
+import hellfirepvp.astralsorcery.common.structure.array.BlockArray;
 import hellfirepvp.astralsorcery.common.structure.array.PatternBlockArray;
 import hellfirepvp.astralsorcery.common.tile.TileAttunementRelay;
 import hellfirepvp.astralsorcery.common.tile.TileChalice;
@@ -53,10 +55,12 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.renderer.vertex.VertexFormat;
+import net.minecraft.client.renderer.vertex.VertexFormatElement;
 import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -64,13 +68,9 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3i;
-import com.wdcftgg.astralaltar.cilent.render.BakedQuadRetextured;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
-import net.minecraft.init.Biomes;
-import hellfirepvp.astralsorcery.common.structure.array.BlockArray;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.client.model.pipeline.LightUtil;
 import net.minecraftforge.common.ForgeHooks;
@@ -82,9 +82,9 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemStackHandler;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
-import org.lwjgl.BufferUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -97,7 +97,9 @@ import java.util.stream.Collectors;
 public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftingProgress {
 
     private static final ResourceLocation starlightLiquidStill = new ResourceLocation("astralsorcery:blocks/fluid/starlight_still");
+
     private static final String activeTAG = "isActive";
+
     private static final BlockPos[] outerCrystalOffsets = new BlockPos[] {
             new BlockPos(-3, 6, -3),
             new BlockPos(-3, 6, 3),
@@ -110,6 +112,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             ModSounds.oneLineE,
             ModSounds.oneLineF,
     };
+
     public static final int constellationBegin = 500;
     public static final int constellationEnd = 600;
     private static final int liquidStarlightBegin = 770;
@@ -123,9 +126,16 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     private static final int chaliceRescanIntervalTicks = 20;
     private static final int chaliceScanBudgetPerTick = 320;
     private static final float risingClipIncreasePerTick = 0.01F;
+    private static final double risingModelBaseOffsetY = 1.2D;
+    private static final double risingModelScale = 0.7D;
+    private static final double outerGuideBaseOffsetY = 1.5D;
+    private static final double guideClearanceY = 1.0D;
+    private static final double liquidGuideOverlapLiftY = 1.0D;
+    private static final double liquidGuideLiftStepPerTick = 0.18D;
 
     @SideOnly(Side.CLIENT)
     private static final PatternBlockArray liquidGuidePattern = new MultiblockContainmentChalice();
+
     @SideOnly(Side.CLIENT)
     private static final IBlockAccess liquidGuideAirWorld = new WorldBlockArrayRenderAccess() {
         @Override
@@ -133,18 +143,20 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             return 0x00F000F0;
         }
     };
+
     @SideOnly(Side.CLIENT)
     private static LiquidGuidePatternMetrics liquidGuidePatternMetrics;
 
     @SideOnly(Side.CLIENT)
     private final Map<String, OuterConstellationRenderState> outerConstellationRenderStates = new HashMap<>();
+
     @SideOnly(Side.CLIENT)
     private final Map<String, OuterLiquidGuideRenderState> outerLiquidGuideRenderStates = new HashMap<>();
+
     @SideOnly(Side.CLIENT)
     private final Map<String, RisingClipRenderState> risingClipRenderStates = new HashMap<>();
+
     private final Map<String, ChaliceSearchCache> chaliceSearchCaches = new HashMap<>();
-
-
 
     private List<ItemHandle> additionallyRequiredStacks = Lists.newLinkedList();
 
@@ -152,12 +164,14 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
     private IConstellation requiredConstellation = null;
 
-    private static List<IConstellation> requiredOuterConstellations = new ArrayList<>(4);
+    private List<IConstellation> requiredOuterConstellations = new ArrayList<>(4);
 
     private Map<TraitRecipeSlot, ItemHandle> matchTraitStacks = new HashMap<>();
 
     private int requiredLiquidStarlight = 0;
+
     private Map<ConstellationAtlarSlot, ItemHandle> matchStacks = new HashMap<>();
+
     private Map<AttunementAltarSlot, ItemHandle> additionalSlots = new HashMap<>();
 
     protected GodRecipe(TileGodAltar.AltarLevel neededLevel, AccessibleRecipe recipe) {
@@ -443,10 +457,17 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     }
 
     public void addRequiredOuterConstellation(IConstellation constellation) {
-        if (requiredOuterConstellations.size() > 4) {
+        if (requiredOuterConstellations.size() > 3) {
             throw new IllegalArgumentException("Cannot have more than 4 required outer constellations!");
         }
         this.requiredOuterConstellations.add(constellation);
+    }
+
+    public void addRequiredOuterConstellations(IConstellation... constellations) {
+        if (requiredOuterConstellations.size() + constellations.length > 4) {
+            throw new IllegalArgumentException("Cannot have more than 4 required outer constellations!");
+        }
+        this.requiredOuterConstellations.addAll(Arrays.asList(constellations));
     }
 
     public List<IConstellation> getRequiredOuterConstellations() {
@@ -540,6 +561,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         boolean noOuterConstellations = outerConstellationsRequired <= 0; //无外部星座需求
         boolean noLiquidStarlight = liquidStarlightRequired <= 0; //无星能液需求
 
+        System.out.println(activeCraftingTick);
 
         // 从零开始，每350/required个tick检查一次是否有新的中继器被使用，如果被使用了就记录下来，直到所有的required都被使用否则合成时间不继续走，等所有的required都被使用了才继续检查液体星辉的输入（如果需要的话）
         // 0 - 350
@@ -578,9 +600,10 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             int cttPart = part / outerCrystalOffsets.length;
             List<TileCollectorCrystal> activeCrystals = getOuterActiveCrystals(altar);
             int activeCrystalCount = activeCrystals.size();
+            System.out.println(activeCrystalCount);
             for (int i = 0; i < outerCrystalOffsets.length; i++) {
                 int timing = (i * cttPart) + begin;
-                if (activeCraftingTick == timing && activeCrystalCount <= i) {
+                if (activeCraftingTick >= timing && activeCrystalCount <= i) {
                     return false;
                 }
                 if (activeCraftingTick == 600) {
@@ -733,9 +756,9 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
     public static List<TileCollectorCrystal> getOuterActiveCrystals(TileGodAltar altar) {
         List<TileCollectorCrystal> active = new ArrayList<>();
-        if (requiredOuterConstellations.isEmpty()) {
-            return active;
-        }
+//        if (requiredOuterConstellations.isEmpty()) {
+//            return active;
+//        }
 
         for (TileCollectorCrystal crystal : findCrystals(altar)) {
             if (!isCrystalActive(crystal)) {
@@ -864,6 +887,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         super.onCraftServerAbort(altar, rand);
         clearOuterConstellationCrystals(altar);
         chaliceSearchCaches.remove(getAltarCacheKey(altar));
+        altar.getTank().drain(altar.getFluidAmount(), true);
     }
 
     @Override
@@ -1031,6 +1055,12 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             boolean inputStopped = inLiquidWindow && needsLiquid && !inputIncreased;
 
             state.prevAlpha = state.alpha;
+            if (inputIncreased && !state.hasReceivedFirstInput) {
+                state.hasReceivedFirstInput = true;
+                // Keep the first fade-out at the original altar position.
+                state.keepBasePositionUntilHidden = state.alpha > 0.001F || state.showing;
+            }
+
             if (inputIncreased || !inLiquidWindow || !needsLiquid) {
                 state.waitingForDelay = false;
                 state.stopStartTick = -1L;
@@ -1043,9 +1073,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
             boolean readyToShow = state.waitingForDelay && state.stopStartTick >= 0L && (nowTick - state.stopStartTick) >= liquidGuideDelayTicks;
             if (readyToShow && !state.showing) {
-                // Lock the render Y for this visible cycle to avoid pop-up while fading.
                 state.showing = true;
-                state.lockedLiftY = fluidNow > 0 ? 1.0D : 0.0D;
             }
              float targetAlpha = readyToShow ? liquidGuideMaxAlpha : 0F;
              float step = readyToShow ? liquidGuideFadeInStep : liquidGuideFadeOutStep;
@@ -1056,8 +1084,21 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
              }
             if (!readyToShow && state.alpha <= 0.001F) {
                 state.showing = false;
-                state.lockedLiftY = 0.0D;
+                state.keepBasePositionUntilHidden = false;
             }
+
+            state.prevRenderLiftY = state.renderLiftY;
+            double targetLiftY;
+            if (!state.hasReceivedFirstInput || state.keepBasePositionUntilHidden) {
+                // Initial/no-input phase renders directly above altar center.
+                targetLiftY = 0.0D;
+            } else {
+                // After first actual liquid input, always render at real-time 1-block clearance.
+                targetLiftY = getLiquidGuideLiftFromRisingClip(altar, partialTicks);
+            }
+            // No vertical tweening: position switches by phase, not by floating transition.
+            state.renderLiftY = targetLiftY;
+            state.prevRenderLiftY = targetLiftY;
 
              if (!inLiquidWindow && state.alpha <= 0.001F) {
                  outerLiquidGuideRenderStates.remove(key);
@@ -1077,6 +1118,8 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             return;
         }
 
+        double liftY = state.prevRenderLiftY + (state.renderLiftY - state.prevRenderLiftY) * MathHelper.clamp(partialTicks, 0F, 1F);
+
         LiquidGuidePatternMetrics metrics = getLiquidGuidePatternMetrics();
         if (metrics.pattern.isEmpty()) {
             return;
@@ -1092,7 +1135,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         int prevShadeModel = GL11.glGetInteger(GL11.GL_SHADE_MODEL);
 
          GlStateManager.pushMatrix();
-        GlStateManager.translate(renderX + 0.5D, renderY + 1.5D + state.lockedLiftY, renderZ + 0.5D);
+         GlStateManager.translate(renderX + 0.5D, renderY + 1.5D + liftY, renderZ + 0.5D);
          GlStateManager.rotate((float) angle, 0F, 1F, 0F);
          GlStateManager.scale(metrics.scale, metrics.scale, metrics.scale);
          GlStateManager.translate(-metrics.centerX, -metrics.centerY, -metrics.centerZ);
@@ -1369,8 +1412,10 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
         float targetClipHeight = this.requiredLiquidStarlight <= 0 ? 0F : (float) altar.getFluidAmount() / this.requiredLiquidStarlight;
         float clipHeight = getAnimatedRisingClipHeight(altar, targetClipHeight, partialTicks);
+        ModelVerticalBounds modelBounds = getModelVerticalBounds(bakedModel, modelState, builtIn && !hasQuads);
+        float clipPlaneY = modelBounds.minY + modelBounds.getHeight() * clipHeight;
 
-        if (clipHeight <= 0.0F) {
+        if (clipHeight <= 0.0F || modelBounds.getHeight() <= 0.0001F || clipPlaneY <= modelBounds.minY + 0.0001F) {
             return;
         }
 
@@ -1382,10 +1427,11 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
         GlStateManager.disableLighting();
         GlStateManager.enableBlend();
+        GlStateManager.enableDepth();
         GlStateManager.enableTexture2D();
         GlStateManager.disableCull();
         GlStateManager.alphaFunc(GL11.GL_GREATER, 0.001F);
-        Blending.CONSTANT_ALPHA.applyStateManager();
+        Blending.DEFAULT.applyStateManager();
 
         float scale = 0.7F;
         GlStateManager.scale(scale, scale, scale);
@@ -1396,7 +1442,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
         if (clipHeight > 0) {
 
-            enableClipPlane(clipHeight);
+            enableClipPlane(clipPlaneY);
             boolean wantStencil = true;
             if (stack.getItem() instanceof ItemBlock) {
                 Block block = ((ItemBlock) stack.getItem()).getBlock();
@@ -1404,7 +1450,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             }
             boolean useStencil = wantStencil && setupStencilMask(bakedModel, stack, builtIn, modelState);
             Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-//            GlStateManager.depthMask(false);
+            GlStateManager.depthMask(false);
             GlStateManager.enablePolygonOffset();
             GlStateManager.doPolygonOffset(-1.0F, -1.0F);
             if (builtIn && !hasQuads) {
@@ -1414,7 +1460,7 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             }
             GlStateManager.doPolygonOffset(0.0F, 0.0F);
             GlStateManager.disablePolygonOffset();
-//            GlStateManager.depthMask(true);
+            GlStateManager.depthMask(true);
             if (useStencil) {
                 GL11.glDisable(GL11.GL_STENCIL_TEST);
                 GL11.glStencilMask(0xFF);
@@ -1442,17 +1488,30 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         boolean preferFaces = state != null;
         if (preferFaces) {
             boolean rendered = false;
+            boolean renderedUpFace = false;
             for (EnumFacing face : EnumFacing.values()) {
                 List<BakedQuad> faceQuads = model.getQuads(state, face, rand);
                 if (!faceQuads.isEmpty()) {
                     renderQuadList(buffer, faceQuads, sprite, color);
                     rendered = true;
+                    if (face == EnumFacing.UP) {
+                        renderedUpFace = true;
+                    }
                 }
             }
-            if (!rendered) {
-                List<BakedQuad> general = model.getQuads(state, null, rand);
-                if (!general.isEmpty()) {
+            List<BakedQuad> general = model.getQuads(state, null, rand);
+            // Some models keep the top face in general quads. Only draw UP quads here to avoid full overdraw/whitening.
+            if (!general.isEmpty()) {
+                if (!rendered) {
+                    // Some models only provide general quads; render all to avoid showing only the top face.
                     renderQuadList(buffer, general, sprite, color);
+                } else if (!renderedUpFace) {
+                    // If side quads rendered but top is missing, only patch the UP face from general quads.
+                    for (BakedQuad quad : general) {
+                        if (quad.getFace() == EnumFacing.UP) {
+                            renderQuadList(buffer, Collections.singletonList(quad), sprite, color);
+                        }
+                    }
                 }
             }
         } else {
@@ -1570,11 +1629,15 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
 
     @SideOnly(Side.CLIENT)
     private int getStarlightTintColor() {
-        Fluid fluid = FluidRegistry.getFluid("liquid_starlight");
+        Fluid fluid = BlocksAS.fluidLiquidStarlight;
+        if (fluid == null) {
+            fluid = FluidRegistry.getFluid("liquid_starlight");
+        }
         if (fluid == null) {
             fluid = FluidRegistry.getFluid("starlight");
         }
-        int color = fluid != null ? fluid.getColor() : 0xFFFFFFFF;
+        // Avoid pure-white fallback that makes the model look over-bright.
+        int color = fluid != null ? fluid.getColor() : 0x8899CC;
         return (color & 0x00FFFFFF) | 0xB0000000;
     }
 
@@ -1627,17 +1690,27 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         boolean preferFaces = state != null;
         if (preferFaces) {
             boolean rendered = false;
+            boolean renderedUpFace = false;
             for (EnumFacing face : EnumFacing.values()) {
                 List<BakedQuad> faceQuads = model.getQuads(state, face, rand);
                 if (!faceQuads.isEmpty()) {
                     renderQuadListOriginal(buffer, faceQuads, color);
                     rendered = true;
+                    if (face == EnumFacing.UP) {
+                        renderedUpFace = true;
+                    }
                 }
             }
-            if (!rendered) {
-                List<BakedQuad> general = model.getQuads(state, null, rand);
-                if (!general.isEmpty()) {
+            List<BakedQuad> general = model.getQuads(state, null, rand);
+            if (!general.isEmpty()) {
+                if (!rendered) {
                     renderQuadListOriginal(buffer, general, color);
+                } else if (!renderedUpFace) {
+                    for (BakedQuad quad : general) {
+                        if (quad.getFace() == EnumFacing.UP) {
+                            renderQuadListOriginal(buffer, Collections.singletonList(quad), color);
+                        }
+                    }
                 }
             }
         } else {
@@ -1682,20 +1755,96 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
     }
 
     @SideOnly(Side.CLIENT)
+    private ModelVerticalBounds getModelVerticalBounds(IBakedModel model, @Nullable IBlockState state, boolean builtInFallback) {
+        if (builtInFallback) {
+            return new ModelVerticalBounds(0F, 1F);
+        }
+
+        float minY = Float.POSITIVE_INFINITY;
+        float maxY = Float.NEGATIVE_INFINITY;
+        long rand = 0L;
+
+        List<BakedQuad> general = model.getQuads(state, null, rand);
+        for (BakedQuad quad : general) {
+            float[] bounds = readQuadYBounds(quad);
+            if (bounds == null) continue;
+            minY = Math.min(minY, bounds[0]);
+            maxY = Math.max(maxY, bounds[1]);
+        }
+
+        for (EnumFacing face : EnumFacing.values()) {
+            List<BakedQuad> faceQuads = model.getQuads(state, face, rand);
+            for (BakedQuad quad : faceQuads) {
+                float[] bounds = readQuadYBounds(quad);
+                if (bounds == null) continue;
+                minY = Math.min(minY, bounds[0]);
+                maxY = Math.max(maxY, bounds[1]);
+            }
+        }
+
+        if (!Float.isFinite(minY) || !Float.isFinite(maxY) || maxY - minY <= 0.0001F) {
+            return new ModelVerticalBounds(0F, 1F);
+        }
+        return new ModelVerticalBounds(minY, maxY);
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Nullable
+    private float[] readQuadYBounds(BakedQuad quad) {
+        VertexFormat format = quad.getFormat();
+        int posOffset = -1;
+        for (int i = 0; i < format.getElementCount(); i++) {
+            VertexFormatElement element = format.getElement(i);
+            if (element.getUsage() == VertexFormatElement.EnumUsage.POSITION) {
+                posOffset = format.getOffset(i) / 4;
+                break;
+            }
+        }
+        if (posOffset < 0) {
+            return null;
+        }
+
+        int[] data = quad.getVertexData();
+        int vertexSize = format.getIntegerSize();
+        if (vertexSize <= 0 || data.length < (vertexSize * 4)) {
+            return null;
+        }
+
+        float minY = Float.POSITIVE_INFINITY;
+        float maxY = Float.NEGATIVE_INFINITY;
+        for (int v = 0; v < 4; v++) {
+            int base = v * vertexSize + posOffset;
+            if (base + 1 >= data.length) {
+                continue;
+            }
+            float y = Float.intBitsToFloat(data[base + 1]);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+        }
+
+        if (!Float.isFinite(minY) || !Float.isFinite(maxY)) {
+            return null;
+        }
+        return new float[] { minY, maxY };
+    }
+
+    @SideOnly(Side.CLIENT)
     private float getAnimatedRisingClipHeight(TileGodAltar altar, float targetClipHeight, float partialTicks) {
         String key = getAltarCacheKey(altar);
         RisingClipRenderState state = risingClipRenderStates.computeIfAbsent(key, k -> new RisingClipRenderState());
         long nowTick = ClientScheduler.getClientTick();
-        long deltaTick = state.lastTick < 0 ? 1L : Math.max(1L, nowTick - state.lastTick);
-        state.lastTick = nowTick;
-
         targetClipHeight = MathHelper.clamp(targetClipHeight, 0F, 1F);
-        state.prevClipHeight = state.clipHeight;
-        if (targetClipHeight > state.clipHeight) {
-            state.clipHeight = Math.min(targetClipHeight, state.clipHeight + risingClipIncreasePerTick * deltaTick);
-        } else {
-            // Keep falling behavior responsive; only smooth the rising edge.
-            state.clipHeight = targetClipHeight;
+        if (state.lastTick != nowTick) {
+            long deltaTick = state.lastTick < 0 ? 1L : Math.max(0L, nowTick - state.lastTick);
+            state.lastTick = nowTick;
+
+            state.prevClipHeight = state.clipHeight;
+            if (targetClipHeight > state.clipHeight) {
+                state.clipHeight = Math.min(targetClipHeight, state.clipHeight + risingClipIncreasePerTick * deltaTick);
+            } else {
+                // Keep falling behavior responsive; only smooth the rising edge.
+                state.clipHeight = targetClipHeight;
+            }
         }
 
         float interpolated = state.prevClipHeight + (state.clipHeight - state.prevClipHeight) * MathHelper.clamp(partialTicks, 0F, 1F);
@@ -1703,6 +1852,48 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
             risingClipRenderStates.remove(key);
         }
         return MathHelper.clamp(interpolated, 0F, 1F);
+    }
+
+    @SideOnly(Side.CLIENT)
+    private double getLiquidGuideLiftFromRisingClip(TileGodAltar altar, float partialTicks) {
+        float targetClipHeight = requiredLiquidStarlight <= 0 ? 0F : (float) altar.getFluidAmount() / (float) requiredLiquidStarlight;
+        float animatedClipHeight = getAnimatedRisingClipHeight(altar, targetClipHeight, partialTicks);
+        if (animatedClipHeight <= 0.0F) {
+            return liquidGuideOverlapLiftY;
+        }
+
+        ModelVerticalBounds bounds = getCurrentRisingModelBoundsForRender();
+        float clipPlaneY = bounds.minY + (bounds.getHeight() * animatedClipHeight);
+        double risingVisibleTopY = risingModelBaseOffsetY + (risingModelScale * clipPlaneY);
+        double requiredGuideBaseY = risingVisibleTopY + guideClearanceY;
+        double liftY = requiredGuideBaseY - outerGuideBaseOffsetY;
+        return Math.max(liquidGuideOverlapLiftY, liftY);
+    }
+
+    @SideOnly(Side.CLIENT)
+    private ModelVerticalBounds getCurrentRisingModelBoundsForRender() {
+        ItemStack stack = getOutputForRender();
+        if (stack.isEmpty()) {
+            return new ModelVerticalBounds(0F, 1F);
+        }
+
+        IBakedModel bakedModel = Minecraft.getMinecraft().getRenderItem().getItemModelWithOverrides(stack, null, null);
+        boolean builtIn = bakedModel.isBuiltInRenderer();
+        IBlockState modelState = null;
+        boolean hasQuads = hasAnyQuads(bakedModel);
+        if (stack.getItem() instanceof ItemBlock) {
+            ItemBlock ib = (ItemBlock) stack.getItem();
+            IBlockState state = ib.getBlock().getStateFromMeta(stack.getMetadata());
+            IBakedModel blockModel = Minecraft.getMinecraft().getBlockRendererDispatcher()
+                    .getBlockModelShapes().getModelForState(state);
+            if (hasAnyQuads(blockModel, state)) {
+                bakedModel = blockModel;
+                builtIn = false;
+                modelState = state;
+                hasQuads = true;
+            }
+        }
+        return getModelVerticalBounds(bakedModel, modelState, builtIn && !hasQuads);
     }
 
     @Nullable
@@ -1935,10 +2126,28 @@ public class GodRecipe extends AddedAbstractAltarRecipe implements IAddedCraftin
         private long stopStartTick = -1L;
         private boolean waitingForDelay = false;
         private boolean showing = false;
-        private double lockedLiftY = 0.0D;
+        private boolean hasReceivedFirstInput = false;
+        private boolean keepBasePositionUntilHidden = false;
+        private double renderLiftY = 0.0D;
+        private double prevRenderLiftY = 0.0D;
         private float alpha = 0F;
         private float prevAlpha = 0F;
         private long lastTick = Long.MIN_VALUE;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static class ModelVerticalBounds {
+        private final float minY;
+        private final float maxY;
+
+        private ModelVerticalBounds(float minY, float maxY) {
+            this.minY = minY;
+            this.maxY = maxY;
+        }
+
+        private float getHeight() {
+            return maxY - minY;
+        }
     }
 
     @SideOnly(Side.CLIENT)

@@ -1,7 +1,7 @@
 package com.wdcftgg.astralaltar.crafting;
 
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
-import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
+import com.wdcftgg.astralaltar.crafting.altar.GodRecipe;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.crafting.altar.AbstractAltarRecipe;
 import net.minecraft.entity.player.EntityPlayer;

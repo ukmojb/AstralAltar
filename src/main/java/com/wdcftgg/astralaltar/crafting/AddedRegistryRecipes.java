@@ -1,0 +1,131 @@
+package com.wdcftgg.astralaltar.crafting;
+
+import com.wdcftgg.astralaltar.blocks.ModBlocks;
+import com.wdcftgg.astralaltar.crafting.altar.GodRecipe;
+import com.wdcftgg.astralaltar.crafting.altar.GodRecipe.GodRecipeSlot;
+import com.wdcftgg.astralaltar.crafting.recipe.EvolutionSextantUpgradeRecipe;
+import hellfirepvp.astralsorcery.common.block.BlockBlackMarble;
+import hellfirepvp.astralsorcery.common.block.BlockInfusedWood;
+import hellfirepvp.astralsorcery.common.block.BlockMarble;
+import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe.AttunementAltarSlot;
+import hellfirepvp.astralsorcery.common.crafting.altar.recipes.ConstellationRecipe.ConstellationAtlarSlot;
+import hellfirepvp.astralsorcery.common.crafting.altar.recipes.SextantUpgradeRecipe;
+import hellfirepvp.astralsorcery.common.crafting.altar.recipes.TraitRecipe.TraitRecipeSlot;
+import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
+import hellfirepvp.astralsorcery.common.item.ItemCraftingComponent;
+import hellfirepvp.astralsorcery.common.lib.Constellations;
+import net.minecraft.init.Items;
+
+import static com.wdcftgg.astralaltar.crafting.AddedAltarRecipeRegistry.registerGodRecipe;
+import static hellfirepvp.astralsorcery.common.crafting.altar.AltarRecipeRegistry.registerAltarRecipe;
+import static hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipe.Builder.newShapedRecipe;
+
+public class AddedRegistryRecipes {
+
+    public static GodRecipe test;
+    public static GodRecipe test1;
+    public static EvolutionSextantUpgradeRecipe evolutionSextantUpgrade;
+
+    public static void initAstralRecipes() {
+
+        evolutionSextantUpgrade = registerAltarRecipe(new EvolutionSextantUpgradeRecipe());
+
+        initGodRecipes();
+    }
+    public static void initGodRecipes() {
+        test = registerGodRecipe(newShapedRecipe("internal/altar/bore_core111", Items.BEEF)
+                .addPart(Items.APPLE.getDefaultInstance(),
+                        ShapedRecipeSlot.UPPER_LEFT,
+                        ShapedRecipeSlot.LEFT,
+                        ShapedRecipeSlot.UPPER_RIGHT,
+                        ShapedRecipeSlot.RIGHT)
+                .addPart(ItemCraftingComponent.MetaType.RESO_GEM.asStack(),
+                        ShapedRecipeSlot.CENTER,
+                        ShapedRecipeSlot.LOWER_CENTER)
+                .addPart(BlockMarble.MarbleBlockType.RUNED.asStack(),
+                        ShapedRecipeSlot.LOWER_LEFT,
+                        ShapedRecipeSlot.LOWER_RIGHT)
+                .unregisteredAccessibleShapedRecipe());
+        test.setAttItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                AttunementAltarSlot.UPPER_RIGHT,
+                AttunementAltarSlot.UPPER_LEFT);
+        test.setCstItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                ConstellationAtlarSlot.UP_LEFT_LEFT,
+                ConstellationAtlarSlot.UP_RIGHT_RIGHT);
+        test.setInnerTraitItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                TraitRecipeSlot.LEFT_CENTER,
+                TraitRecipeSlot.RIGHT_CENTER,
+                TraitRecipeSlot.LOWER_CENTER,
+                TraitRecipeSlot.UPPER_CENTER);
+        test.setInnerTraitItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
+                TraitRecipeSlot.UPPER_CENTER);
+        test.setCstItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
+                ConstellationAtlarSlot.UP_UP_LEFT,
+                ConstellationAtlarSlot.UP_UP_RIGHT);
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.RESO_GEM.asStack());
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.RESO_GEM.asStack());
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+        test.setGodItem(Items.BOOK,
+                GodRecipeSlot.LOWER_RIGHT,
+                GodRecipeSlot.LEFT_LOWER,
+                GodRecipeSlot.LOWER_LEFT_CORNER,
+                GodRecipeSlot.LOWER_RIGHT_CORNER,
+                GodRecipeSlot.UPPER_LEFT_CORNER,
+                GodRecipeSlot.UPPER_RIGHT_CORNER,
+                GodRecipeSlot.RIGHT_UPPER);
+        test.setPassiveStarlightRequirement(6500);
+        test.setRequiredConstellation(Constellations.vicio);
+        test.setGodLiquidStarlight(6000);
+        test.addRequiredOuterConstellations(Constellations.vicio, Constellations.aevitas, Constellations.bootes, Constellations.octans);
+
+
+
+        test1 = registerGodRecipe(newShapedRecipe("internal/altar/222", ModBlocks.godAltar)
+                .addPart(Items.APPLE.getDefaultInstance(),
+                        ShapedRecipeSlot.UPPER_LEFT,
+                        ShapedRecipeSlot.LEFT,
+                        ShapedRecipeSlot.UPPER_RIGHT,
+                        ShapedRecipeSlot.RIGHT)
+                .addPart(ItemCraftingComponent.MetaType.RESO_GEM.asStack(),
+                        ShapedRecipeSlot.CENTER,
+                        ShapedRecipeSlot.LOWER_CENTER)
+                .addPart(BlockMarble.MarbleBlockType.RUNED.asStack(),
+                        ShapedRecipeSlot.LOWER_LEFT,
+                        ShapedRecipeSlot.LOWER_RIGHT)
+                .unregisteredAccessibleShapedRecipe());
+        test1.setAttItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                AttunementAltarSlot.UPPER_RIGHT,
+                AttunementAltarSlot.UPPER_LEFT);
+        test1.setCstItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                ConstellationAtlarSlot.UP_LEFT_LEFT,
+                ConstellationAtlarSlot.UP_RIGHT_RIGHT);
+        test1.setInnerTraitItem(BlockInfusedWood.WoodType.ENRICHED.asStack(),
+                TraitRecipeSlot.LEFT_CENTER,
+                TraitRecipeSlot.RIGHT_CENTER,
+                TraitRecipeSlot.LOWER_CENTER,
+                TraitRecipeSlot.UPPER_CENTER);
+        test1.setInnerTraitItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
+                TraitRecipeSlot.UPPER_CENTER);
+        test1.setCstItem(BlockBlackMarble.BlackMarbleBlockType.RAW.asStack(),
+                ConstellationAtlarSlot.UP_UP_LEFT,
+                ConstellationAtlarSlot.UP_UP_RIGHT);
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.RESO_GEM.asStack());
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.RESO_GEM.asStack());
+//        test.addOuterTraitItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+        test1.setGodItem(Items.BOOK,
+                GodRecipeSlot.LOWER_RIGHT,
+                GodRecipeSlot.LEFT_LOWER,
+                GodRecipeSlot.LOWER_LEFT_CORNER,
+                GodRecipeSlot.LOWER_RIGHT_CORNER,
+                GodRecipeSlot.UPPER_LEFT_CORNER,
+                GodRecipeSlot.UPPER_RIGHT_CORNER);
+        test1.setPassiveStarlightRequirement(6500);
+        test1.setRequiredConstellation(Constellations.vicio);
+        test1.setGodLiquidStarlight(10000);
+        test1.addRequiredOuterConstellations(Constellations.vicio, Constellations.aevitas, Constellations.bootes, Constellations.octans);
+    }
+}

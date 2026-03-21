@@ -63,13 +63,10 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.items.CapabilityItemHandler;
-import scala.actors.migration.pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -450,7 +447,6 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
                     return;
                 }
             }
-            this.tank.setFluid((Fluid)null);
             this.findRecipe(player);
         }
 
@@ -637,7 +633,8 @@ public class TileGodAltar extends TileReceiverBaseInventory implements IWandInte
 
     @Override
     public void acceptStarlight(int mbLiquidStarlight) {
-        if(canAcceptStarlight(mbLiquidStarlight)) {
+        if (this.getAddedActiveCraftingTask() == null) return;
+        if (canAcceptStarlight(mbLiquidStarlight)) {
             getTank().fill(new FluidStack(BlocksAS.fluidLiquidStarlight, mbLiquidStarlight), true);
             markForUpdate();
         }

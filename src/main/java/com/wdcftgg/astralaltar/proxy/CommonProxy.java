@@ -1,6 +1,7 @@
 package com.wdcftgg.astralaltar.proxy;
 
 import com.wdcftgg.astralaltar.crafting.AddedCraftingAccessManager;
+import com.wdcftgg.astralaltar.crafting.VanillaCrafting;
 import com.wdcftgg.astralaltar.gui.GuiElementLoader;
 import com.wdcftgg.astralaltar.init.RegistryStructures;
 import com.wdcftgg.astralaltar.init.multiblock.MultiblockContainmentChalice;
@@ -37,6 +38,7 @@ public class CommonProxy{
 	public void onInit(){
 		RegistryStructures.init();
 
+		VanillaCrafting.init();
 
 		new GuiElementLoader();
 	}

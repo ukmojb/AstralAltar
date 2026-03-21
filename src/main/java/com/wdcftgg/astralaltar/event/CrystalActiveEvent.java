@@ -3,13 +3,10 @@ package com.wdcftgg.astralaltar.event;
 
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.crafting.AddedActiveCraftingTask;
-import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
-import com.wdcftgg.astralaltar.init.ModSounds;
+import com.wdcftgg.astralaltar.crafting.altar.GodRecipe;
 import hellfirepvp.astralsorcery.common.item.tool.wand.ItemWand;
 import hellfirepvp.astralsorcery.common.tile.network.TileCollectorCrystal;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
@@ -47,7 +44,7 @@ public class CrystalActiveEvent {
 
                             int num = GodRecipe.getOuterActiveCrystals(godAltar).size() - 1;
                             System.out.println(num);
-                            world.playSound(null, pos, GodRecipe.soundEvents[num], SoundCategory.BLOCKS, 1f, 1f);
+                            world.playSound(null, pos, GodRecipe.soundEvents[num], SoundCategory.BLOCKS, 0.3f, 1f);
                         } else {
 
                             player.swingArm(EnumHand.MAIN_HAND);

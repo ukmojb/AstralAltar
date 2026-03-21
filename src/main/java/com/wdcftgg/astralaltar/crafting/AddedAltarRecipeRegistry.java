@@ -2,7 +2,7 @@ package com.wdcftgg.astralaltar.crafting;
 
 import com.google.common.collect.Lists;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
-import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
+import com.wdcftgg.astralaltar.crafting.altar.GodRecipe;
 import hellfirepvp.astralsorcery.common.crafting.ISpecialCraftingEffects;
 import hellfirepvp.astralsorcery.common.crafting.altar.AltarRecipeRegistry;
 import hellfirepvp.astralsorcery.common.crafting.helper.AccessibleRecipeAdapater;

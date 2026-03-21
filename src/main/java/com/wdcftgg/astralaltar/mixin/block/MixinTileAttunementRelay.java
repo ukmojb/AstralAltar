@@ -1,7 +1,6 @@
 package com.wdcftgg.astralaltar.mixin.block;
 
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
-import hellfirepvp.astralsorcery.common.constellation.IWeakConstellation;
 import hellfirepvp.astralsorcery.common.constellation.distribution.ConstellationSkyHandler;
 import hellfirepvp.astralsorcery.common.constellation.distribution.WorldSkyHandler;
 import hellfirepvp.astralsorcery.common.tile.TileAttunementRelay;

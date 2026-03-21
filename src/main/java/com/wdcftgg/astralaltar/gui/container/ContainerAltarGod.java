@@ -33,7 +33,7 @@ public class ContainerAltarGod extends Container {
 
     public void bindAltarInventory() {
         for (int xx = 0; xx < 3; xx++) {
-            addSlotToContainer(new SlotItemHandler(invHandler,     xx, 120 + xx * 18, 47));
+            addSlotToContainer(new SlotItemHandler(invHandler, xx, 120 + xx * 18, 47));
         }
         for (int xx = 0; xx < 3; xx++) {
             addSlotToContainer(new SlotItemHandler(invHandler, 3 + xx, 120 + xx * 18, 65));

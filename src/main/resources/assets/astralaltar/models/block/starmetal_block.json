@@ -1,0 +1,6 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all": "astralaltar:blocks/starmetal_block"
+  }
+}

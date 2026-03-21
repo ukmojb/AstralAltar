@@ -28,3 +28,11 @@ AttunementRecipe及以上的祭坛物品不消耗
 完成合成过程的特效提示
 下一步准备激活水晶的四声钢琴声,音调逐次上升 √
 构思jei中星能液该如何显示
+
+26.3.19
+外部星座为空时配方出现错误 √
+修改祭坛的碰撞 √
+
+26.3.21
+完成jei中星能液的显示 √
+研究五彩祭坛变成耀辉祭坛的配方(IAltarUpgradeRecipe)(TileAltar.tryForceLevelUp)

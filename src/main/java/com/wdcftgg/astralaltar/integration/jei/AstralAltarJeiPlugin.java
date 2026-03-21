@@ -4,26 +4,10 @@ import com.wdcftgg.astralaltar.blocks.ModBlocks;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.crafting.AddedAbstractAltarRecipe;
 import com.wdcftgg.astralaltar.crafting.AddedAltarRecipeRegistry;
-import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
+import com.wdcftgg.astralaltar.crafting.altar.GodRecipe;
 import com.wdcftgg.astralaltar.gui.GuiAltarGod;
-import com.wdcftgg.astralaltar.gui.container.ContainerAltarGod;
-import hellfirepvp.astralsorcery.common.container.ContainerAltarAttunement;
-import hellfirepvp.astralsorcery.common.container.ContainerAltarConstellation;
-import hellfirepvp.astralsorcery.common.container.ContainerAltarDiscovery;
-import hellfirepvp.astralsorcery.common.container.ContainerAltarTrait;
-import hellfirepvp.astralsorcery.common.crafting.altar.recipes.AttunementRecipe;
-import hellfirepvp.astralsorcery.common.crafting.altar.recipes.ConstellationRecipe;
-import hellfirepvp.astralsorcery.common.crafting.altar.recipes.TraitRecipe;
-import hellfirepvp.astralsorcery.common.crafting.helper.ShapedRecipeSlot;
 import hellfirepvp.astralsorcery.common.integrations.ModIntegrationJEI;
-import hellfirepvp.astralsorcery.common.integrations.mods.jei.util.TieredAltarRecipeTransferHandler;
-import mezz.jei.api.IGuiHelper;
-import mezz.jei.api.IJeiHelpers;
-import mezz.jei.api.IJeiRuntime;
-import mezz.jei.api.IModPlugin;
-import mezz.jei.api.IModRegistry;
-import mezz.jei.api.ISubtypeRegistry;
-import mezz.jei.api.JEIPlugin;
+import mezz.jei.api.*;
 import mezz.jei.api.ingredients.IModIngredientRegistration;
 import mezz.jei.api.recipe.IRecipeCategory;
 import mezz.jei.api.recipe.IRecipeCategoryRegistration;
@@ -32,12 +16,9 @@ import mezz.jei.api.recipe.transfer.IRecipeTransferRegistry;
 import mezz.jei.startup.StackHelper;
 import net.minecraft.item.ItemStack;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static hellfirepvp.astralsorcery.common.integrations.ModIntegrationJEI.stackHelper;
 
 @JEIPlugin
 public class AstralAltarJeiPlugin implements IModPlugin {

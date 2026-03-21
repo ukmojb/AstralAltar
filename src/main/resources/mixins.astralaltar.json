@@ -3,6 +3,7 @@
   "refmap": "mixins.astralaltar.refmap.json",
   "mixins": [
     "block.MixinBlockAttunementRelay",
+    "block.MixinTileAltar",
     "block.MixinTileAttunementRelay",
     "item.MixinItemSextant"
   ],

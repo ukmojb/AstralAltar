@@ -2,7 +2,7 @@ package com.wdcftgg.astralaltar.cilent.tile;
 
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.crafting.AddedActiveCraftingTask;
-import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
+import com.wdcftgg.astralaltar.crafting.altar.GodRecipe;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.render.tile.TESRCollectorCrystal;
 import hellfirepvp.astralsorcery.client.util.ItemColorizationHelper;

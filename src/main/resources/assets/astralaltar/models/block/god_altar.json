@@ -2,13 +2,13 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
 	"textures": {
-		"0": "astralaltar:blocks/altar_top",
-		"1": "astralaltar:blocks/altar_side",
-		"2": "astralaltar:blocks/altar_bottom_1",
-		"3": "astralaltar:blocks/altar_bottom_2",
-		"4": "astralaltar:blocks/altar_hovering",
-		"5": "astralaltar:blocks/altar_hovering_1",
-		"particle": "astralaltar:blocks/altar_top"
+		"0": "astralaltar:blocks/altar/altar_top",
+		"1": "astralaltar:blocks/altar/altar_side",
+		"2": "astralaltar:blocks/altar/altar_bottom_1",
+		"3": "astralaltar:blocks/altar/altar_bottom_2",
+		"4": "astralaltar:blocks/altar/altar_hovering",
+		"5": "astralaltar:blocks/altar/altar_hovering_1",
+		"particle": "astralaltar:blocks/altar/altar_top"
 	},
 	"elements": [
 		{

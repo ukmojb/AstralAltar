@@ -1,7 +1,7 @@
 package com.wdcftgg.astralaltar.crafting;
 
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
-import com.wdcftgg.astralaltar.crafting.recipe.GodRecipe;
+import com.wdcftgg.astralaltar.crafting.altar.GodRecipe;
 import hellfirepvp.astralsorcery.common.constellation.distribution.ConstellationSkyHandler;
 import hellfirepvp.astralsorcery.common.crafting.IGatedRecipe;
 import hellfirepvp.astralsorcery.common.crafting.INighttimeRecipe;

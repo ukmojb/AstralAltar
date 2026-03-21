@@ -1,5 +1,6 @@
 package com.wdcftgg.astralaltar.blocks;
 
+import com.google.common.collect.Lists;
 import com.wdcftgg.astralaltar.AstralAltar;
 import com.wdcftgg.astralaltar.blocks.tile.TileGodAltar;
 import com.wdcftgg.astralaltar.init.ModCreativeTab;
@@ -8,13 +9,12 @@ import com.wdcftgg.astralaltar.util.IHasModel;
 import hellfirepvp.astralsorcery.common.block.BlockAttunementRelay;
 import hellfirepvp.astralsorcery.common.block.network.BlockAltar;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
-import hellfirepvp.astralsorcery.common.registry.RegistryItems;
 import hellfirepvp.astralsorcery.common.structure.array.BlockArray;
+import hellfirepvp.astralsorcery.common.tile.TileAltar;
 import hellfirepvp.astralsorcery.common.util.BlockStateCheck;
 import hellfirepvp.astralsorcery.common.util.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.struct.BlockDiscoverer;
-import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.properties.PropertyBool;
@@ -22,6 +22,7 @@ import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -41,13 +42,53 @@ import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
 import static com.wdcftgg.astralaltar.gui.GuiElementLoader.GUI_GodAltar;
-import static hellfirepvp.astralsorcery.common.util.ItemUtils.dropItemNaturally;
 
 public class BlockGodAltar extends BlockAltar implements IHasModel {
     public static PropertyBool RENDER_FULLY = PropertyBool.create("render");
+    private static final List<AxisAlignedBB> COLLISION_BOXES = Lists.newArrayList(
+            // Core altar
+            box(0.0D, 0.0D, 0.0D, 1.0D, 0.25D, 1.0D),
+            box(0.25D, 0.25D, 0.25D, 0.75D, 0.5D, 0.75D),
+            box(0.0D, 0.5D, 0.0D, 1.0D, 1.0D, 1.0D),
+            // Floating outer pieces from bbmodel (including coordinates outside the base block)
+            box(-0.3125D, 0.75D, 1.0625D, -0.0625D, 1.25D, 1.3125D),
+            box(0.0D, 0.8125D, 1.0625D, 0.25D, 1.1875D, 1.3125D),
+            box(0.375D, 0.625D, 1.0625D, 0.625D, 1.125D, 1.3125D),
+            box(0.75D, 0.8125D, 1.0625D, 1.0D, 1.1875D, 1.3125D),
+            box(1.0625D, 0.75D, 1.0625D, 1.3125D, 1.25D, 1.3125D),
+            box(1.0625D, 0.8125D, 0.75D, 1.3125D, 1.1875D, 1.0D),
+            box(1.0625D, 0.625D, 0.375D, 1.3125D, 1.125D, 0.625D),
+            box(1.0625D, 0.8125D, 0.0D, 1.3125D, 1.1875D, 0.25D),
+            box(1.0625D, 0.75D, -0.3125D, 1.3125D, 1.25D, -0.0625D),
+            // bbmodel had y=12.5..18.5 here; round up to y=13..19 as requested.
+            box(0.75D, 0.8125D, -0.3125D, 1.0D, 1.1875D, -0.0625D),
+            box(0.375D, 0.625D, -0.3125D, 0.625D, 1.125D, -0.0625D),
+            box(0.0D, 0.8125D, -0.3125D, 0.25D, 1.1875D, -0.0625D),
+            box(-0.3125D, 0.75D, -0.3125D, -0.0625D, 1.25D, -0.0625D),
+            box(-0.3125D, 0.8125D, 0.0D, -0.0625D, 1.1875D, 0.25D),
+            box(-0.3125D, 0.625D, 0.375D, -0.0625D, 1.125D, 0.625D),
+            box(-0.3125D, 0.8125D, 0.75D, -0.0625D, 1.1875D, 1.0D),
+            box(-0.625D, 0.9375D, 0.125D, -0.375D, 1.3125D, 0.375D),
+            box(0.125D, 0.9375D, -0.625D, 0.375D, 1.3125D, -0.375D),
+            box(0.625D, 0.9375D, -0.625D, 0.875D, 1.3125D, -0.375D),
+            box(-0.625D, 0.8125D, 0.375D, -0.375D, 1.3125D, 0.625D),
+//            box(-0.625D, 1.0D, 1.375D, -0.375D, 1.5D, 1.625D),
+//            box(-0.625D, 1.0D, -0.625D, -0.375D, 1.5D, -0.375D),
+//            box(1.375D, 1.0D, -0.625D, 1.625D, 1.5D, -0.375D),
+//            box(1.375D, 1.0D, 1.375D, 1.625D, 1.5D, 1.625D),
+            box(-0.625D, 0.9375D, 0.625D, -0.375D, 1.3125D, 0.875D),
+            box(1.375D, 0.9375D, 0.125D, 1.625D, 1.3125D, 0.375D),
+            box(1.375D, 0.8125D, 0.375D, 1.625D, 1.3125D, 0.625D),
+            box(0.375D, 0.8125D, -0.625D, 0.625D, 1.3125D, -0.375D),
+            box(0.375D, 0.8125D, 1.375D, 0.625D, 1.3125D, 1.625D),
+            box(0.125D, 0.9375D, 1.375D, 0.375D, 1.3125D, 1.625D),
+            box(0.625D, 0.9375D, 1.375D, 0.875D, 1.3125D, 1.625D),
+            box(1.375D, 0.9375D, 0.625D, 1.625D, 1.3125D, 0.875D)
+    );
 
     public BlockGodAltar() {
         super();
@@ -121,9 +162,35 @@ public class BlockGodAltar extends BlockAltar implements IHasModel {
         searchThread.start();
     }
 
+//    @Override
+//    public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) {
+//        return Block.FULL_BLOCK_AABB;
+//    }
+
     @Override
-    public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) {
-        return Block.FULL_BLOCK_AABB;
+    public void addCollisionBoxToList(IBlockState state, World worldIn, BlockPos pos, AxisAlignedBB entityBox, List<AxisAlignedBB> collidingBoxes, @Nullable Entity entityIn, boolean isActualState)
+    {
+
+        for (AxisAlignedBB axisalignedbb : getCollisionBoxList())
+        {
+            addCollisionBoxToList(pos, entityBox, collidingBoxes, axisalignedbb);
+        }
+    }
+
+    private static List<AxisAlignedBB> getCollisionBoxList()
+    {
+        return COLLISION_BOXES;
+    }
+
+    private static AxisAlignedBB box(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
+        return new AxisAlignedBB(
+                minX,
+                minY,
+                minZ,
+                maxX,
+                maxY,
+                maxZ
+        );
     }
 
     @Override
@@ -147,11 +214,11 @@ public class BlockGodAltar extends BlockAltar implements IHasModel {
     }
     @Override
     public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
-//        int lvl = stack.getItemDamage();
-//        TileAltar ta = (TileAltar)MiscUtils.getTileAt(worldIn, pos, TileAltar.class, true);
-//        if (ta != null) {
-//            ta.onPlace(TileAltar.AltarLevel.values()[lvl]);
-//        }
+        int lvl = stack.getItemDamage();
+        TileGodAltar ta = (TileGodAltar) MiscUtils.getTileAt(worldIn, pos, TileGodAltar.class, true);
+        if (ta != null) {
+            ta.onPlace(TileGodAltar.AltarLevel.values()[lvl]);
+        }
 
     }
 
